@@ -372,6 +372,7 @@ class WindowManager {
     }
 
     func showSizeConstraintWarning(on screen: NSScreen) {
+        guard Defaults.showMinimumWindowSizeWarning.userEnabled else { return }
         if windowSizeWarning == nil {
             windowSizeWarning = WindowSizeWarning()
         }
@@ -399,6 +400,13 @@ struct RectangleAction {
     let subAction: SubWindowAction?
     let rect: CGRect
     let count: Int
+    
+    init(action: WindowAction, subAction: SubWindowAction? = nil, rect: CGRect, count: Int = 0) {
+        self.action = action
+        self.subAction = subAction
+        self.rect = rect
+        self.count = count
+    }
 }
 
 struct ExecutionParameters {
