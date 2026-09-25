@@ -144,7 +144,7 @@ jobs:
       - name: Mirror upstream releases and assets
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
         run: |
           set -euo pipefail
 
@@ -159,6 +159,7 @@ jobs:
           release_update_count=0
           asset_upload_count=0
           asset_skip_count=0
+          release_api_blocked=false
 
           run_with_retry() {
             local attempt max_attempts delay output exit_code compact_output
@@ -252,9 +253,13 @@ jobs:
                 release_update_count=$((release_update_count + 1))
                 echo "Updated release $tag."
               fi
-            else
-              run_with_retry gh api --method POST "repos/${TARGET_REPOSITORY}/releases" \
-                --input "$release_payload" > "$target_release_file"
+              else
+                run_with_retry gh api --method POST "repos/${TARGET_REPOSITORY}/releases" \
+                  --input "$release_payload" > "$target_release_file" || {
+                    release_api_blocked=true
+                    echo "::warning::GitHub Actions cannot create releases in this repository with the current token. Add a RELEASE_TOKEN secret with contents:write permission to enable release mirroring."
+                    break
+                  }
               cooldown_after_write
               release_create_count=$((release_create_count + 1))
               echo "Created release $tag."
@@ -364,12 +369,15 @@ jobs:
             echo "- Releases updated: $release_update_count"
             echo "- Assets uploaded or replaced: $asset_upload_count"
             echo "- Assets already current: $asset_skip_count"
+            if [ "$release_api_blocked" = "true" ]; then
+              echo "- Release API access: blocked for the current token; add a RELEASE_TOKEN secret with contents:write permission."
+            fi
           } >> "$summary"
 
       - name: Match upstream latest release
         shell: bash
         env:
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
         run: |
           set -euo pipefail
 
