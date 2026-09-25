@@ -167,6 +167,8 @@ jobs:
           release_count=0
           release_create_count=0
           release_update_count=0
+          release_skip_count=0
+          skipped_release_tags=""
           asset_upload_count=0
           asset_skip_count=0
           run_with_retry() {
@@ -222,6 +224,16 @@ jobs:
 
             if [ -z "$target_commitish" ]; then
               echo "::warning::Skipping release $tag because its upstream tag was not fetched."
+              release_skip_count=$((release_skip_count + 1))
+              skipped_release_tags="${skipped_release_tags}${skipped_release_tags:+, }${tag}"
+              continue
+            fi
+
+            target_tag_sha="$(git ls-remote origin "refs/tags/${tag}" | awk '{print $1}' | head -n 1)"
+            if [ -z "$target_tag_sha" ]; then
+              echo "::warning::Skipping release $tag because GitHub Actions cannot create the matching tag in this fork. This can happen when an upstream Rectangle tag points at a commit that changes workflow files."
+              release_skip_count=$((release_skip_count + 1))
+              skipped_release_tags="${skipped_release_tags}${skipped_release_tags:+, }${tag}"
               continue
             fi
 
@@ -371,6 +383,10 @@ jobs:
             echo "- Releases processed: $release_count"
             echo "- Releases created: $release_create_count"
             echo "- Releases updated: $release_update_count"
+            echo "- Releases skipped because the matching fork tag is unavailable: $release_skip_count"
+            if [ -n "$skipped_release_tags" ]; then
+              echo "- Skipped release tags: $skipped_release_tags"
+            fi
             echo "- Assets uploaded or replaced: $asset_upload_count"
             echo "- Assets already current: $asset_skip_count"
           } >> "$summary"
