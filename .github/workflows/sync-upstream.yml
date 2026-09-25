@@ -125,14 +125,21 @@ jobs:
             || git remote add upstream "https://github.com/${UPSTREAM_REPOSITORY}.git"
 
           tag_count=0
+          tag_push_count=0
+          tag_warning_count=0
           while IFS= read -r tag_ref; do
             [ -n "$tag_ref" ] || continue
             tag_count=$((tag_count + 1))
             git fetch --force upstream "${tag_ref}:${tag_ref}"
-            git push --force origin "${tag_ref}:${tag_ref}"
+            if git push --force origin "${tag_ref}:${tag_ref}"; then
+              tag_push_count=$((tag_push_count + 1))
+            else
+              tag_warning_count=$((tag_warning_count + 1))
+              echo "::warning::Could not push ${tag_ref}; release mirroring will continue and can create release tags as needed."
+            fi
           done < <(git ls-remote --tags --refs upstream | awk '{print $2}')
 
-          echo "Synced $tag_count upstream tag(s)."
+          echo "Checked $tag_count upstream tag(s); pushed $tag_push_count tag(s), warnings $tag_warning_count."
 
       - name: Mirror upstream releases and assets
         shell: bash
