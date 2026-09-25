@@ -183,7 +183,7 @@ jobs:
                 return "$exit_code"
               fi
 
-              if printf '%s' "$output" | grep -Eiq 'secondary rate|rate limit|abuse|Resource not accessible by integration'; then
+              if printf '%s' "$output" | grep -Eiq 'secondary rate|rate limit|abuse'; then
                 compact_output="$(printf '%s' "$output" | tr '\n' ' ' | cut -c 1-300)"
                 echo "::warning::GitHub call failed; retrying in ${delay}s (attempt ${attempt}/${max_attempts}): ${compact_output}" >&2
                 sleep "$delay"
