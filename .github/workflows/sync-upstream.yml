@@ -14,6 +14,7 @@ on:
 
 permissions:
   contents: write
+  actions: write
 
 concurrency:
   group: mirror-upstream-${{ github.repository }}
@@ -27,8 +28,8 @@ env:
   KEEPALIVE_DAYS: "45"
   GH_API_RETRY_ATTEMPTS: "5"
   GH_API_RETRY_DELAY_SECONDS: "30"
-  GH_RELEASE_THROTTLE_SECONDS: "4"
-  MIRRORED_RELEASE_COUNT: "20"
+  GH_RELEASE_THROTTLE_SECONDS: "5"
+  MIRRORED_RELEASE_COUNT: "3"
   RELEASE_MANIFEST: .github/upstream-sync/upstream-releases.json
   KEEPALIVE_MARKER: .github/upstream-sync/last-scheduled-run.txt
 
@@ -124,27 +125,36 @@ jobs:
           git remote set-url upstream "https://github.com/${UPSTREAM_REPOSITORY}.git" 2>/dev/null \
             || git remote add upstream "https://github.com/${UPSTREAM_REPOSITORY}.git"
 
+          git fetch --force --tags upstream
+
           tag_count=0
           tag_push_count=0
+          tag_skip_count=0
           tag_warning_count=0
-          while IFS= read -r tag_ref; do
+          while IFS=$'\t' read -r upstream_sha tag_ref; do
             [ -n "$tag_ref" ] || continue
             tag_count=$((tag_count + 1))
-            git fetch --force upstream "${tag_ref}:${tag_ref}"
+
+            target_sha="$(git ls-remote origin "$tag_ref" | awk '{print $1}' | head -n 1)"
+            if [ "$target_sha" = "$upstream_sha" ]; then
+              tag_skip_count=$((tag_skip_count + 1))
+              continue
+            fi
+
             if git push --force origin "${tag_ref}:${tag_ref}"; then
               tag_push_count=$((tag_push_count + 1))
             else
               tag_warning_count=$((tag_warning_count + 1))
               echo "::warning::Could not push ${tag_ref}; release mirroring will continue and can create release tags as needed."
             fi
-          done < <(git ls-remote --tags --refs upstream | awk '{print $2}')
+          done < <(git ls-remote --tags --refs upstream | awk '{print $1 "\t" $2}')
 
-          echo "Checked $tag_count upstream tag(s); pushed $tag_push_count tag(s), warnings $tag_warning_count."
+          echo "Checked $tag_count upstream tag(s); pushed $tag_push_count tag(s), skipped $tag_skip_count current tag(s), warnings $tag_warning_count."
 
       - name: Mirror upstream releases and assets
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
@@ -159,8 +169,6 @@ jobs:
           release_update_count=0
           asset_upload_count=0
           asset_skip_count=0
-          release_api_blocked=false
-
           run_with_retry() {
             local attempt max_attempts delay output exit_code compact_output
             max_attempts="${GH_API_RETRY_ATTEMPTS:-5}"
@@ -183,7 +191,7 @@ jobs:
                 return "$exit_code"
               fi
 
-              if printf '%s' "$output" | grep -Eiq 'secondary rate|rate limit|abuse'; then
+              if printf '%s' "$output" | grep -Eiq 'secondary rate|rate limit|abuse|Resource not accessible by integration'; then
                 compact_output="$(printf '%s' "$output" | tr '\n' ' ' | cut -c 1-300)"
                 echo "::warning::GitHub call failed; retrying in ${delay}s (attempt ${attempt}/${max_attempts}): ${compact_output}" >&2
                 sleep "$delay"
@@ -253,13 +261,9 @@ jobs:
                 release_update_count=$((release_update_count + 1))
                 echo "Updated release $tag."
               fi
-              else
-                run_with_retry gh api --method POST "repos/${TARGET_REPOSITORY}/releases" \
-                  --input "$release_payload" > "$target_release_file" || {
-                    release_api_blocked=true
-                    echo "::warning::GitHub Actions cannot create releases in this repository with the current token. Add a RELEASE_TOKEN secret with contents:write permission to enable release mirroring."
-                    break
-                  }
+            else
+              run_with_retry gh api --method POST "repos/${TARGET_REPOSITORY}/releases" \
+                --input "$release_payload" > "$target_release_file"
               cooldown_after_write
               release_create_count=$((release_create_count + 1))
               echo "Created release $tag."
@@ -369,15 +373,12 @@ jobs:
             echo "- Releases updated: $release_update_count"
             echo "- Assets uploaded or replaced: $asset_upload_count"
             echo "- Assets already current: $asset_skip_count"
-            if [ "$release_api_blocked" = "true" ]; then
-              echo "- Release API access: blocked for the current token; add a RELEASE_TOKEN secret with contents:write permission."
-            fi
           } >> "$summary"
 
       - name: Match upstream latest release
         shell: bash
         env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN || github.token }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
 
