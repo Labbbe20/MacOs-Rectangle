@@ -1,0 +1,483 @@
+name: Mirror upstream
+
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub cron schedules use UTC.
+    - cron: "37 4 * * *"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/sync-upstream.yml"
+      - ".github/upstream-sync/**"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mirror-upstream-${{ github.repository }}
+  cancel-in-progress: false
+
+env:
+  UPSTREAM_REPOSITORY: rxhanson/Rectangle
+  UPSTREAM_BRANCH: main
+  TARGET_REPOSITORY: ${{ github.repository }}
+  TARGET_BRANCH: main
+  KEEPALIVE_DAYS: "45"
+  GH_API_RETRY_ATTEMPTS: "5"
+  GH_API_RETRY_DELAY_SECONDS: "30"
+  GH_RELEASE_THROTTLE_SECONDS: "4"
+  MIRRORED_RELEASE_COUNT: "20"
+  RELEASE_MANIFEST: .github/upstream-sync/upstream-releases.json
+  KEEPALIVE_MARKER: .github/upstream-sync/last-scheduled-run.txt
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    outputs:
+      source_changed: ${{ steps.sync.outputs.source_changed }}
+      synced_sha: ${{ steps.sync.outputs.synced_sha }}
+
+    steps:
+      - name: Checkout fork
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Configure Git
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Sync main branch
+        id: sync
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch --prune origin "+refs/heads/${TARGET_BRANCH}:refs/remotes/origin/${TARGET_BRANCH}"
+          git checkout -B "$TARGET_BRANCH" "origin/$TARGET_BRANCH"
+
+          git remote set-url upstream "https://github.com/${UPSTREAM_REPOSITORY}.git" 2>/dev/null \
+            || git remote add upstream "https://github.com/${UPSTREAM_REPOSITORY}.git"
+
+          git fetch --prune upstream "+refs/heads/${UPSTREAM_BRANCH}:refs/remotes/upstream/${UPSTREAM_BRANCH}"
+
+          upstream_head="$(git rev-parse "refs/remotes/upstream/${UPSTREAM_BRANCH}")"
+          source_changed=true
+          if git merge-base --is-ancestor "$upstream_head" HEAD; then
+            source_changed=false
+          fi
+
+          git merge --no-edit "refs/remotes/upstream/${UPSTREAM_BRANCH}"
+
+          mkdir -p "$(dirname "$KEEPALIVE_MARKER")"
+          now_iso="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+          now_epoch="$(date -u +%s)"
+          last_epoch=0
+
+          if [ -s "$KEEPALIVE_MARKER" ]; then
+            last_line="$(head -n 1 "$KEEPALIVE_MARKER")"
+            parsed_epoch="$(date -u -d "$last_line" +%s 2>/dev/null || true)"
+            if [ -n "$parsed_epoch" ]; then
+              last_epoch="$parsed_epoch"
+            fi
+          fi
+
+          threshold_seconds=$((KEEPALIVE_DAYS * 86400))
+          age_seconds=$((now_epoch - last_epoch))
+
+          if [ "$last_epoch" -eq 0 ] || [ "$age_seconds" -ge "$threshold_seconds" ]; then
+            {
+              echo "$now_iso"
+              echo
+              echo "Updated occasionally by the upstream mirror workflow."
+              echo "This helps keep scheduled runs active in quiet public forks."
+            } > "$KEEPALIVE_MARKER"
+            git add "$KEEPALIVE_MARKER"
+            git commit -m "Keep upstream mirror schedule active" || true
+          else
+            echo "Keepalive marker is still fresh."
+          fi
+
+          synced_sha="$(git rev-parse HEAD)"
+          {
+            echo "source_changed=$source_changed"
+            echo "synced_sha=$synced_sha"
+          } >> "$GITHUB_OUTPUT"
+
+          if [ "$synced_sha" != "$(git rev-parse "origin/$TARGET_BRANCH")" ]; then
+            git push origin "HEAD:$TARGET_BRANCH"
+          else
+            echo "main is already up to date."
+          fi
+
+      - name: Sync upstream tags
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git remote set-url upstream "https://github.com/${UPSTREAM_REPOSITORY}.git" 2>/dev/null \
+            || git remote add upstream "https://github.com/${UPSTREAM_REPOSITORY}.git"
+
+          tag_count=0
+          while IFS= read -r tag_ref; do
+            [ -n "$tag_ref" ] || continue
+            tag_count=$((tag_count + 1))
+            git fetch --force upstream "${tag_ref}:${tag_ref}"
+            git push --force origin "${tag_ref}:${tag_ref}"
+          done < <(git ls-remote --tags --refs upstream | awk '{print $2}')
+
+          echo "Synced $tag_count upstream tag(s)."
+
+      - name: Mirror upstream releases and assets
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          workdir="$(mktemp -d)"
+          summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
+          old_manifest="$RELEASE_MANIFEST"
+
+          mkdir -p "$(dirname "$RELEASE_MANIFEST")"
+
+          release_count=0
+          release_create_count=0
+          release_update_count=0
+          asset_upload_count=0
+          asset_skip_count=0
+
+          run_with_retry() {
+            local attempt max_attempts delay output exit_code compact_output
+            max_attempts="${GH_API_RETRY_ATTEMPTS:-5}"
+            delay="${GH_API_RETRY_DELAY_SECONDS:-30}"
+            attempt=1
+
+            while true; do
+              set +e
+              output="$("$@" 2>&1)"
+              exit_code=$?
+              set -e
+
+              if [ "$exit_code" -eq 0 ]; then
+                printf '%s' "$output"
+                return 0
+              fi
+
+              if [ "$attempt" -ge "$max_attempts" ]; then
+                printf '%s\n' "$output" >&2
+                return "$exit_code"
+              fi
+
+              if printf '%s' "$output" | grep -Eiq 'secondary rate|rate limit|abuse|Resource not accessible by integration'; then
+                compact_output="$(printf '%s' "$output" | tr '\n' ' ' | cut -c 1-300)"
+                echo "::warning::GitHub call failed; retrying in ${delay}s (attempt ${attempt}/${max_attempts}): ${compact_output}" >&2
+                sleep "$delay"
+                attempt=$((attempt + 1))
+                delay=$((delay * 2))
+                continue
+              fi
+
+              printf '%s\n' "$output" >&2
+              return "$exit_code"
+            done
+          }
+
+          cooldown_after_write() {
+            sleep "${GH_RELEASE_THROTTLE_SECONDS:-4}"
+          }
+
+          while IFS= read -r encoded_release; do
+            [ -n "$encoded_release" ] || continue
+            release_count=$((release_count + 1))
+
+            release_json="$(printf '%s' "$encoded_release" | base64 --decode)"
+            tag="$(printf '%s' "$release_json" | jq -r '.tag_name')"
+            name="$(printf '%s' "$release_json" | jq -r '.name // .tag_name')"
+            body="$(printf '%s' "$release_json" | jq -r '.body // ""')"
+            target_prerelease="$(printf '%s' "$release_json" | jq -r '.prerelease')"
+            target_commitish="$(git rev-list -n 1 "$tag" 2>/dev/null || true)"
+
+            if [ -z "$target_commitish" ]; then
+              echo "::warning::Skipping release $tag because its upstream tag was not fetched."
+              continue
+            fi
+
+            release_payload="$workdir/release-${release_count}.json"
+            target_release_file="$workdir/target-release-${release_count}.json"
+
+            jq -n \
+              --arg tag "$tag" \
+              --arg target "$target_commitish" \
+              --arg name "$name" \
+              --arg body "$body" \
+              --argjson prerelease "$target_prerelease" \
+              '{
+                tag_name: $tag,
+                target_commitish: $target,
+                name: $name,
+                body: $body,
+                draft: false,
+                prerelease: $prerelease,
+                make_latest: "false"
+              }' > "$release_payload"
+
+            if gh api "repos/${TARGET_REPOSITORY}/releases/tags/${tag}" > "$target_release_file" 2>/dev/null; then
+              target_release_id="$(jq -r '.id' "$target_release_file")"
+              target_release_name="$(jq -r '.name // ""' "$target_release_file")"
+              target_release_body="$(jq -r '.body // ""' "$target_release_file")"
+              target_release_prerelease="$(jq -r '.prerelease' "$target_release_file")"
+
+              if [ "$target_release_name" = "$name" ] \
+                && [ "$target_release_body" = "$body" ] \
+                && [ "$target_release_prerelease" = "$target_prerelease" ]; then
+                echo "Release $tag metadata is already current."
+              else
+                run_with_retry gh api --method PATCH "repos/${TARGET_REPOSITORY}/releases/${target_release_id}" \
+                  --input "$release_payload" >/dev/null
+                cooldown_after_write
+                release_update_count=$((release_update_count + 1))
+                echo "Updated release $tag."
+              fi
+            else
+              run_with_retry gh api --method POST "repos/${TARGET_REPOSITORY}/releases" \
+                --input "$release_payload" > "$target_release_file"
+              cooldown_after_write
+              release_create_count=$((release_create_count + 1))
+              echo "Created release $tag."
+            fi
+
+            asset_dir="$workdir/assets/$tag"
+            mkdir -p "$asset_dir"
+
+            while IFS= read -r encoded_asset; do
+              [ -n "$encoded_asset" ] || continue
+
+              asset_json="$(printf '%s' "$encoded_asset" | base64 --decode)"
+              asset_id="$(printf '%s' "$asset_json" | jq -r '.id')"
+              asset_name="$(printf '%s' "$asset_json" | jq -r '.name')"
+              asset_size="$(printf '%s' "$asset_json" | jq -r '.size')"
+              asset_updated="$(printf '%s' "$asset_json" | jq -r '.updated_at')"
+              asset_digest="$(printf '%s' "$asset_json" | jq -r '.digest // ""')"
+              asset_url="$(printf '%s' "$asset_json" | jq -r '.browser_download_url')"
+
+              target_asset_id="$(jq -r --arg name "$asset_name" '.assets[]? | select(.name == $name) | .id' "$target_release_file" | head -n 1)"
+              target_asset_size="$(jq -r --arg name "$asset_name" '.assets[]? | select(.name == $name) | .size' "$target_release_file" | head -n 1)"
+              target_asset_digest="$(jq -r --arg name "$asset_name" '.assets[]? | select(.name == $name) | .digest // empty' "$target_release_file" | head -n 1)"
+
+              old_asset_id=""
+              old_asset_updated=""
+              old_asset_digest=""
+
+              if [ -f "$old_manifest" ]; then
+                old_asset_id="$(jq -r --arg tag "$tag" --arg name "$asset_name" '.releases[]? | select(.tag_name == $tag) | .assets[]? | select(.name == $name) | .id // empty' "$old_manifest" 2>/dev/null | head -n 1 || true)"
+                old_asset_updated="$(jq -r --arg tag "$tag" --arg name "$asset_name" '.releases[]? | select(.tag_name == $tag) | .assets[]? | select(.name == $name) | .updated_at // empty' "$old_manifest" 2>/dev/null | head -n 1 || true)"
+                old_asset_digest="$(jq -r --arg tag "$tag" --arg name "$asset_name" '.releases[]? | select(.tag_name == $tag) | .assets[]? | select(.name == $name) | .digest // empty' "$old_manifest" 2>/dev/null | head -n 1 || true)"
+              fi
+
+              needs_upload=false
+
+              if [ -z "$target_asset_id" ]; then
+                needs_upload=true
+              elif [ "$target_asset_size" != "$asset_size" ]; then
+                needs_upload=true
+              elif [ -n "$asset_digest" ] && [ -n "$target_asset_digest" ] && [ "$target_asset_digest" != "$asset_digest" ]; then
+                needs_upload=true
+              elif [ -f "$old_manifest" ] \
+                && { [ "$old_asset_id" != "$asset_id" ] || [ "$old_asset_updated" != "$asset_updated" ] || [ "$old_asset_digest" != "$asset_digest" ]; }; then
+                needs_upload=true
+              fi
+
+              if [ "$needs_upload" = "true" ]; then
+                if [ -n "$target_asset_id" ]; then
+                  run_with_retry gh api --method DELETE "repos/${TARGET_REPOSITORY}/releases/assets/${target_asset_id}" >/dev/null
+                  cooldown_after_write
+                fi
+
+                asset_file="$asset_dir/$asset_name"
+                curl --fail --location --retry 3 --retry-delay 2 \
+                  "$asset_url" \
+                  --output "$asset_file"
+
+                run_with_retry gh release upload "$tag" "$asset_file" --repo "$TARGET_REPOSITORY"
+                cooldown_after_write
+                asset_upload_count=$((asset_upload_count + 1))
+                echo "Uploaded asset $asset_name for $tag."
+              else
+                asset_skip_count=$((asset_skip_count + 1))
+                echo "Asset $asset_name for $tag is already current."
+              fi
+            done < <(printf '%s' "$release_json" | jq -r '.assets[]? | @base64')
+          done < <(gh api "repos/${UPSTREAM_REPOSITORY}/releases?per_page=${MIRRORED_RELEASE_COUNT}" --jq '.[] | @base64')
+
+          gh api "repos/${UPSTREAM_REPOSITORY}/releases?per_page=${MIRRORED_RELEASE_COUNT}" --jq '.[]' \
+            | jq -s --arg upstream "$UPSTREAM_REPOSITORY" '{
+                upstream_repository: $upstream,
+                releases: map({
+                  tag_name,
+                  name,
+                  body,
+                  draft,
+                  prerelease,
+                  created_at,
+                  updated_at,
+                  published_at,
+                  assets: [.assets[]? | {
+                    id,
+                    name,
+                    size,
+                    content_type,
+                    updated_at,
+                    digest
+                  }]
+                })
+              }' > "$workdir/upstream-releases.json"
+
+          cp "$workdir/upstream-releases.json" "$RELEASE_MANIFEST"
+          git add "$RELEASE_MANIFEST"
+
+          if ! git diff --cached --quiet -- "$RELEASE_MANIFEST"; then
+            git commit -m "Record upstream release mirror state"
+            git push origin "HEAD:$TARGET_BRANCH"
+          else
+            echo "Release manifest is already current."
+          fi
+
+          {
+            echo "### Upstream release mirror"
+            echo
+            echo "- Releases processed: $release_count"
+            echo "- Releases created: $release_create_count"
+            echo "- Releases updated: $release_update_count"
+            echo "- Assets uploaded or replaced: $asset_upload_count"
+            echo "- Assets already current: $asset_skip_count"
+          } >> "$summary"
+
+      - name: Match upstream latest release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+
+          latest_tag="$(gh api "repos/${UPSTREAM_REPOSITORY}/releases/latest" --jq '.tag_name' 2>/dev/null || true)"
+          target_release_id=""
+
+          if [ -n "$latest_tag" ]; then
+            target_release_id="$(gh api "repos/${TARGET_REPOSITORY}/releases/tags/${latest_tag}" --jq '.id' 2>/dev/null || true)"
+          fi
+
+          if [ -z "$target_release_id" ]; then
+            latest_tag="$(gh api "repos/${UPSTREAM_REPOSITORY}/releases?per_page=1" --jq '.[0].tag_name' 2>/dev/null || true)"
+            if [ -n "$latest_tag" ]; then
+              target_release_id="$(gh api "repos/${TARGET_REPOSITORY}/releases/tags/${latest_tag}" --jq '.id' 2>/dev/null || true)"
+            fi
+          fi
+
+          if [ -z "$latest_tag" ] || [ -z "$target_release_id" ]; then
+            echo "No mirrored release is available to mark as latest."
+            exit 0
+          fi
+
+          latest_payload="$(mktemp)"
+          jq -n '{make_latest: "true"}' > "$latest_payload"
+
+          if gh api --method PATCH "repos/${TARGET_REPOSITORY}/releases/${target_release_id}" \
+            --input "$latest_payload" >/dev/null; then
+            echo "Marked $latest_tag as latest release."
+          else
+            echo "Could not mark $latest_tag as latest; GitHub will choose the latest release automatically."
+          fi
+
+  build:
+    name: Best-effort unsigned build
+    needs: mirror
+    if: >-
+      needs.mirror.outputs.source_changed == 'true' ||
+      github.event_name == 'workflow_dispatch'
+    runs-on: macos-27
+    timeout-minutes: 45
+    continue-on-error: true
+    permissions:
+      contents: read
+
+    env:
+      XCODE_PROJECT: Rectangle.xcodeproj
+      XCODE_SCHEME: Rectangle
+      CODE_SIGN_IDENTITY: "-"
+      BUILD_DIR: build
+      XCODE_ARCHIVE: Rectangle.xcarchive
+      APP_NAME: Rectangle.app
+      EXPORT_OPTIONS_PLIST: exportOptions.plist
+      DMG_NAME: Rectangle
+      DMG_FILE_NAME: Rectangle-open-source-build.dmg
+
+    steps:
+      - name: Checkout synced source
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ needs.mirror.outputs.synced_sha }}
+          persist-credentials: false
+
+      - name: Inspect Xcode project
+        run: xcodebuild -list -project "$XCODE_PROJECT"
+
+      - name: Build archive
+        run: |
+          set -euo pipefail
+
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            archive \
+            CODE_SIGN_IDENTITY="$CODE_SIGN_IDENTITY" \
+            -archivePath "$BUILD_DIR/$XCODE_ARCHIVE"
+
+      - name: Export app
+        run: |
+          set -euo pipefail
+
+          plutil -convert xml1 - -o "$EXPORT_OPTIONS_PLIST" << EOF
+          {
+            "destination": "export",
+            "method": "mac-application"
+          }
+          EOF
+
+          xcodebuild \
+            -exportArchive \
+            -archivePath "$BUILD_DIR/$XCODE_ARCHIVE" \
+            -exportPath "$BUILD_DIR" \
+            -exportOptionsPlist "$EXPORT_OPTIONS_PLIST"
+
+      - name: Resign app for ad-hoc distribution
+        run: codesign --force --deep -s "$CODE_SIGN_IDENTITY" "$BUILD_DIR/$APP_NAME"
+
+      - name: Make DMG
+        run: hdiutil create -srcdir "$BUILD_DIR" -volname "$DMG_NAME" "$DMG_FILE_NAME"
+
+      - name: Write build notes
+        run: |
+          set -euo pipefail
+
+          {
+            echo "This artifact is a best-effort build from the public source in this fork."
+            echo "It is ad-hoc signed by GitHub Actions and is not notarized."
+            echo "Official upstream release assets are mirrored separately from rxhanson/Rectangle."
+          } > Rectangle-open-source-build-notes.txt
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Rectangle-open-source-build
+          path: |
+            ${{ env.DMG_FILE_NAME }}
+            Rectangle-open-source-build-notes.txt
+          if-no-files-found: error
+          retention-days: 14
