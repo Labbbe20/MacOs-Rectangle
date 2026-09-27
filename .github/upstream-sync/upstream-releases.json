@@ -2,6 +2,74 @@
   "upstream_repository": "rxhanson/Rectangle",
   "releases": [
     {
+      "tag_name": "v2.0.1",
+      "name": "v2.0.1",
+      "body": "* Fixes a crash in macOS 15\r\n* Fixes a 20px column showing on the left side of the shortcuts outline view in macOS 15\r\n\r\n**Full Changelog**: https://github.com/rxhanson/Rectangle/compare/v2.0...v2.0.1",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2026-09-26T14:19:12Z",
+      "updated_at": "2026-09-26T14:37:59Z",
+      "published_at": "2026-09-26T14:28:40Z",
+      "assets": [
+        {
+          "id": 590820287,
+          "name": "Rectangle.pkg",
+          "size": 4693994,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-09-26T14:32:27Z",
+          "digest": "sha256:1b79c2af2fa6371aa16a9603ee909ee80956fe32c802ed0c247065c5697e9852"
+        },
+        {
+          "id": 590813718,
+          "name": "Rectangle108-102.delta",
+          "size": 2620346,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-09-26T14:28:23Z",
+          "digest": "sha256:1d149df6702644ccf2c8427e30ab9cc4c85b3330162f32d038e48b50010b1437"
+        },
+        {
+          "id": 590813766,
+          "name": "Rectangle108-103.delta",
+          "size": 2568114,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-09-26T14:28:24Z",
+          "digest": "sha256:3d26ff726522119192b4ceabcc3a00ce8c7f5e2437a7f9aab67bdca06fc8eb1e"
+        },
+        {
+          "id": 590813813,
+          "name": "Rectangle108-104.delta",
+          "size": 2565514,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-09-26T14:28:26Z",
+          "digest": "sha256:d3339560d1b25e89856cdb1d93538ee72e89fa40bbe726ef0206f9f6555400a7"
+        },
+        {
+          "id": 590813893,
+          "name": "Rectangle108-105.delta",
+          "size": 2547622,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-09-26T14:28:28Z",
+          "digest": "sha256:73cba6fc8394e6d6cc28fd3444b27836b7a7f465eb565181e79c867cbafe1889"
+        },
+        {
+          "id": 590813944,
+          "name": "Rectangle108-107.delta",
+          "size": 161746,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-09-26T14:28:28Z",
+          "digest": "sha256:99dc1f6eada61356172f2f6e3b0eddcca40486c769b16869bb507b6efda22522"
+        },
+        {
+          "id": 590813962,
+          "name": "Rectangle2.0.1.dmg",
+          "size": 4679550,
+          "content_type": "application/x-diskcopy",
+          "updated_at": "2026-09-26T14:28:31Z",
+          "digest": "sha256:4c1e1dd5b2ac06f29f89e5cb61ca1f2e74bfdc5452dc5828aa06c28580788491"
+        }
+      ]
+    },
+    {
       "tag_name": "v2.0",
       "name": "v2.0",
       "body": "Recently, there have been a lot more contributions to Rectangle. A top goal for Rectangle has always been to keep it simple, and the UI redesign in 2.0 is built to maintain this simplicity while accommodating more changes.\r\n\r\n## What's Changed\r\n* Add keyboard navigation to the stacked-window switcher by @MyronKoch in https://github.com/rxhanson/Rectangle/pull/1808\r\n* Prevent Chromium Enhanced UI performance regression by @culpen90 in https://github.com/rxhanson/Rectangle/pull/1822\r\n* Correct stale Dock insets during window actions by @culpen90 in https://github.com/rxhanson/Rectangle/pull/1823\r\n* Let half actions preserve the window's size on the other axis (opt-in) by @X-Wei in https://github.com/rxhanson/Rectangle/pull/1824\r\n* Show the description next to the window list shortcut recorder by @MyronKoch in https://github.com/rxhanson/Rectangle/pull/1832\r\n* Let a repeated Maximize restore the window's previous size and position (opt-in) by @X-Wei in https://github.com/rxhanson/Rectangle/pull/1837\r\n* fix: explain when windows cannot fit a layout by @culpen90 in https://github.com/rxhanson/Rectangle/pull/1847\r\n* add new window actions: tile a display in rows or columns by @dank-openai in https://github.com/rxhanson/Rectangle/pull/1850\r\n* fix: don't realign a window that is within a point of filling its zone by @anandghegde in https://github.com/rxhanson/Rectangle/pull/1853\r\n* fix: keep the restore rect when unsnapRestoreFromSizeChange is off by @Yash121l in https://github.com/rxhanson/Rectangle/pull/1855\r\n* Add optional snapping animations and a blurred snap preview by @kiteretsu903 in https://github.com/rxhanson/Rectangle/pull/1849\r\n* Add an option to keep constrained windows top-aligned by @slava-class in https://github.com/rxhanson/Rectangle/pull/1856\r\n* tiling: Cycle Rows and Columns through balanced grids by @dank-openai in https://github.com/rxhanson/Rectangle/pull/1857\r\n* Tweaked app icon for macOS 27 by @alexkaessner in https://github.com/rxhanson/Rectangle/pull/1858\r\n* Modernize the Rectangle UI by @rxhanson in https://github.com/rxhanson/Rectangle/pull/1866\r\n* Keep a window's position when moving it to another display by @anandghegde in https://github.com/rxhanson/Rectangle/pull/1863\r\n\r\n## New Contributors\r\n* @X-Wei made their first contribution in https://github.com/rxhanson/Rectangle/pull/1824\r\n* @dank-openai made their first contribution in https://github.com/rxhanson/Rectangle/pull/1850\r\n* @anandghegde made their first contribution in https://github.com/rxhanson/Rectangle/pull/1853\r\n* @Yash121l made their first contribution in https://github.com/rxhanson/Rectangle/pull/1855\r\n* @kiteretsu903 made their first contribution in https://github.com/rxhanson/Rectangle/pull/1849\r\n* @slava-class made their first contribution in https://github.com/rxhanson/Rectangle/pull/1856\r\n\r\n**Full Changelog**: https://github.com/rxhanson/Rectangle/compare/v1.100...v2.0",
@@ -134,74 +202,6 @@
           "content_type": "application/octet-stream",
           "updated_at": "2026-08-26T01:03:25Z",
           "digest": "sha256:096066a8acf6f10aaf5bc3aaf697e84467afe21bbc3cb18a4711f91bc94cb962"
-        }
-      ]
-    },
-    {
-      "tag_name": "v0.99",
-      "name": "v0.99",
-      "body": "## What's Changed\r\n* The ellipsis button in the General tab is now labeled \"Extras\".\r\n* Export Todo sidebar width units by @offyotto in https://github.com/rxhanson/Rectangle/pull/1796\r\n* Add a Settings toggle to keep window size when moving a maximized window to another display by @kmundnic in https://github.com/rxhanson/Rectangle/pull/1791\r\n* Prevent Todo shortcuts from firing during shortcut recording by @culpen90 in https://github.com/rxhanson/Rectangle/pull/1792\r\n* Add a hover badge and switcher for stacked windows by @MyronKoch in https://github.com/rxhanson/Rectangle/pull/1795\r\n* Restore shortcuts after user session switches by @culpen90 in https://github.com/rxhanson/Rectangle/pull/1797\r\n* Invalidate the event tap CFMachPort in ActiveEventMonitor.stop() by @MrMage in https://github.com/rxhanson/Rectangle/pull/1801\r\n* Allow zero to disable minimum window size limits by @culpen90 in https://github.com/rxhanson/Rectangle/pull/1802\r\n* Clear omitted shortcuts when importing config by @arhxam in https://github.com/rxhanson/Rectangle/pull/1805\r\n* Reapply shortcuts when restoring current defaults by @arhxam in https://github.com/rxhanson/Rectangle/pull/1806\r\n* Allow smaller to shrink the height of a vertically maximized window by @YuriNachos in https://github.com/rxhanson/Rectangle/pull/1807\r\n* Preserve relative window position when moving to another display by @YuriNachos in https://github.com/rxhanson/Rectangle/pull/1809\r\n* Honor defaults-write customizations for JSONDefault keys by @YuriNachos in https://github.com/rxhanson/Rectangle/pull/1811\r\n* Eliminate portrait eighth-snap gaps on displays whose height is not divisible by 4 by @YuriNachos in https://github.com/rxhanson/Rectangle/pull/1812\r\n* Bound the overlap-offset scan and offset maximized windows too by @MyronKoch in https://github.com/rxhanson/Rectangle/pull/1810\r\n\r\n## New Contributors\r\n* @offyotto made their first contribution in https://github.com/rxhanson/Rectangle/pull/1796\r\n* @kmundnic made their first contribution in https://github.com/rxhanson/Rectangle/pull/1791\r\n* @MrMage made their first contribution in https://github.com/rxhanson/Rectangle/pull/1801\r\n* @arhxam made their first contribution in https://github.com/rxhanson/Rectangle/pull/1805\r\n* @YuriNachos made their first contribution in https://github.com/rxhanson/Rectangle/pull/1807\r\n\r\n**Full Changelog**: https://github.com/rxhanson/Rectangle/compare/v0.98...v0.99",
-      "draft": false,
-      "prerelease": false,
-      "created_at": "2026-08-19T17:20:47Z",
-      "updated_at": "2026-08-20T02:39:41Z",
-      "published_at": "2026-08-20T02:39:41Z",
-      "assets": [
-        {
-          "id": 521645474,
-          "name": "Rectangle.pkg",
-          "size": 4352090,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-08-20T02:38:31Z",
-          "digest": "sha256:c8dbd8a0dcc32675d22c38a8ac069ca8a97f953836e72a9376beb2bbb50cb1ca"
-        },
-        {
-          "id": 521644844,
-          "name": "Rectangle0.99.dmg",
-          "size": 4308538,
-          "content_type": "application/x-diskcopy",
-          "updated_at": "2026-08-20T02:38:25Z",
-          "digest": "sha256:d4eddd21f5b249df95b6f7738ced4b09e9894d7fea84fe543a80688395ce5bb9"
-        },
-        {
-          "id": 521644732,
-          "name": "Rectangle105-100.delta",
-          "size": 975318,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-08-20T02:38:15Z",
-          "digest": "sha256:bc1e7dad5c65b864bb04e95db37cbb4f49befc016e6f9d43761c5d40fe5daf56"
-        },
-        {
-          "id": 521644765,
-          "name": "Rectangle105-101.delta",
-          "size": 937650,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-08-20T02:38:16Z",
-          "digest": "sha256:85638bbcfeec71f49becee8e6d70b933ec39dde5503c62bdf0ac2cfea3fbee24"
-        },
-        {
-          "id": 521644792,
-          "name": "Rectangle105-102.delta",
-          "size": 494606,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-08-20T02:38:17Z",
-          "digest": "sha256:4c1ae9c5e0cf7f215d83f5d1172d510fc9510ed029062dce64bb76c98f2f28fe"
-        },
-        {
-          "id": 521644819,
-          "name": "Rectangle105-103.delta",
-          "size": 303630,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-08-20T02:38:17Z",
-          "digest": "sha256:63f4c9f0c7ac9470b1e0272306a4650dbec3570f5e10719c4fd7d3ae275c5407"
-        },
-        {
-          "id": 521644829,
-          "name": "Rectangle105-104.delta",
-          "size": 290314,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-08-20T02:38:18Z",
-          "digest": "sha256:b3998776c6b199da588720342382e0ac6e1fc26b00a9f76908c39250949e62eb"
         }
       ]
     }
