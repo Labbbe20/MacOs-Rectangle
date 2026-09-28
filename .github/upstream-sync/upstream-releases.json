@@ -2,6 +2,74 @@
   "upstream_repository": "rxhanson/Rectangle",
   "releases": [
     {
+      "tag_name": "v2.0.2",
+      "name": "v2.0.2",
+      "body": "* Fixes a crash when footprint blur is enabled on macOS < 26\r\n\r\n**Full Changelog**: https://github.com/rxhanson/Rectangle/compare/v2.0.1...v2.0.2",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2026-09-27T12:27:55Z",
+      "updated_at": "2026-09-27T12:39:13Z",
+      "published_at": "2026-09-27T12:34:07Z",
+      "assets": [
+        {
+          "id": 592893620,
+          "name": "Rectangle.pkg",
+          "size": 4693718,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-09-27T12:33:31Z",
+          "digest": "sha256:a21ad2b77496cefb4784235d0af9fe5eb643534a04305736202e7fd1da8614e7"
+        },
+        {
+          "id": 592893380,
+          "name": "Rectangle109-103.delta",
+          "size": 2567218,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-09-27T12:33:24Z",
+          "digest": "sha256:1dc486462ad426d26c8591f76772934bf8b55b06bbfb617c8920f53a5859e4e9"
+        },
+        {
+          "id": 592893420,
+          "name": "Rectangle109-104.delta",
+          "size": 2564662,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-09-27T12:33:25Z",
+          "digest": "sha256:a210034787f92f5988b421281e4af1819b1cebde51af2392dbf5473752d0e7f1"
+        },
+        {
+          "id": 592893440,
+          "name": "Rectangle109-105.delta",
+          "size": 2547122,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-09-27T12:33:25Z",
+          "digest": "sha256:b397ec5f9044719320a947cb5dff0138dd208518f17ca3dcdd64f2af4bcceb91"
+        },
+        {
+          "id": 592893469,
+          "name": "Rectangle109-107.delta",
+          "size": 163162,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-09-27T12:33:26Z",
+          "digest": "sha256:89c74e62bd30645e0d320c77e763b930936bcceda4413df90b32008361bc9121"
+        },
+        {
+          "id": 592893480,
+          "name": "Rectangle109-108.delta",
+          "size": 136362,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-09-27T12:33:26Z",
+          "digest": "sha256:4fc1f90825653930404dca943fa714678cd58083ba0e952fae73e2d70bb1301f"
+        },
+        {
+          "id": 592893485,
+          "name": "Rectangle2.0.2.dmg",
+          "size": 4679140,
+          "content_type": "application/x-diskcopy",
+          "updated_at": "2026-09-27T12:33:27Z",
+          "digest": "sha256:7a42f6b9e852fa7ef827ebe58596a49456d64754154da156df1a1dd184c38833"
+        }
+      ]
+    },
+    {
       "tag_name": "v2.0.1",
       "name": "v2.0.1",
       "body": "* Fixes a crash in macOS 15\r\n* Fixes a 20px column showing on the left side of the shortcuts outline view in macOS 15\r\n\r\n**Full Changelog**: https://github.com/rxhanson/Rectangle/compare/v2.0...v2.0.1",
@@ -134,74 +202,6 @@
           "content_type": "application/x-diskcopy",
           "updated_at": "2026-09-25T18:26:13Z",
           "digest": "sha256:ac87ca495a5aafc208addfc4463e167ab343d0bbabf0003c017903e7d47140b3"
-        }
-      ]
-    },
-    {
-      "tag_name": "v1.100",
-      "name": "v1.100",
-      "body": "## What's Changed\r\n* Fix regression with repeated executions not starting over after a corner action.\r\n* Fix incorrect window width when cycling between displays by @globetro in https://github.com/rxhanson/Rectangle/pull/1821\r\n\r\n## New Contributors\r\n* @globetro made their first contribution in https://github.com/rxhanson/Rectangle/pull/1821\r\n\r\n**Full Changelog**: https://github.com/rxhanson/Rectangle/compare/v0.99...v1.100",
-      "draft": false,
-      "prerelease": false,
-      "created_at": "2026-08-26T00:54:21Z",
-      "updated_at": "2026-08-26T01:04:18Z",
-      "published_at": "2026-08-26T01:04:18Z",
-      "assets": [
-        {
-          "id": 530026832,
-          "name": "Rectangle.pkg",
-          "size": 4355924,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-08-26T01:03:16Z",
-          "digest": "sha256:d14315dbd2d5e5cda2aadbefdc9528096e0396e8f1d34c8d26d62025d4ceb5b0"
-        },
-        {
-          "id": 530026968,
-          "name": "Rectangle1.100.dmg",
-          "size": 4309946,
-          "content_type": "application/x-diskcopy",
-          "updated_at": "2026-08-26T01:03:26Z",
-          "digest": "sha256:5cfbe9b68a558458302c5305cb7060491f68029338e2a4561c54a2981eb8622f"
-        },
-        {
-          "id": 530026933,
-          "name": "Rectangle106-100.delta",
-          "size": 981278,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-08-26T01:03:23Z",
-          "digest": "sha256:ba7e61a21468907f8af202f00319abf9fa9702a9a174151527bf0985fcd93fe2"
-        },
-        {
-          "id": 530026939,
-          "name": "Rectangle106-101.delta",
-          "size": 943454,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-08-26T01:03:24Z",
-          "digest": "sha256:5e865bb72294aac6cd3ad082890e5fa1f5ab0e5b93a05902a1831af93825d0c4"
-        },
-        {
-          "id": 530026950,
-          "name": "Rectangle106-102.delta",
-          "size": 494286,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-08-26T01:03:24Z",
-          "digest": "sha256:67771b5a7af3e1df4dc8f40e01e7c79d6fa181678226ec67d0f36fdd2042825d"
-        },
-        {
-          "id": 530026954,
-          "name": "Rectangle106-103.delta",
-          "size": 314838,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-08-26T01:03:24Z",
-          "digest": "sha256:5108d9e42a1f3f6474e93ef79f56096a7593a699e3dd28acb4ee91641801bf78"
-        },
-        {
-          "id": 530026959,
-          "name": "Rectangle106-104.delta",
-          "size": 307614,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-08-26T01:03:25Z",
-          "digest": "sha256:096066a8acf6f10aaf5bc3aaf697e84467afe21bbc3cb18a4711f91bc94cb962"
         }
       ]
     }
