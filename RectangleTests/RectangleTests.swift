@@ -14,6 +14,227 @@ class RectangleTests: XCTestCase {
     }
 }
 
+class VerticalEighthActionTests: XCTestCase {
+
+    private let actions: [WindowAction] = [
+        .firstVerticalEighth, .secondVerticalEighth, .thirdVerticalEighth, .fourthVerticalEighth,
+        .fifthVerticalEighth, .sixthVerticalEighth, .seventhVerticalEighth, .lastVerticalEighth
+    ]
+
+    func testVerticalEighthActionsUseAvailableStableIdentifiers() {
+        XCTAssertEqual([
+            WindowAction.tileRows.rawValue,
+            WindowAction.tileColumns.rawValue,
+            WindowAction.cycleStackedWindows.rawValue,
+            WindowAction.cycleStackedWindowsBackward.rawValue
+        ], [129, 130, 131, 132])
+        XCTAssertEqual(actions.map(\.rawValue), [133, 134, 135, 136, 137, 138, 139, 140])
+        XCTAssertEqual(actions.map(\.name), [
+            "firstVerticalEighth", "secondVerticalEighth", "thirdVerticalEighth", "fourthVerticalEighth",
+            "fifthVerticalEighth", "sixthVerticalEighth", "seventhVerticalEighth", "lastVerticalEighth"
+        ])
+    }
+
+    func testVerticalEighthActionsTileVisibleFrameIntoEightFullHeightColumns() {
+        let visibleFrame = CGRect(x: 0, y: 40, width: 3840, height: 1000)
+        let expected = (0..<8).map { CGRect(x: CGFloat($0 * 480), y: 40, width: 480, height: 1000) }
+        XCTAssertEqual(actions.map { calculate($0, visibleFrame: visibleFrame).rect }, expected)
+    }
+
+    func testVerticalEighthActionsUseBoundaryRoundingAcrossNonDivisibleLandscapeWidth() {
+        let visibleFrame = CGRect(x: 20, y: 40, width: 1003, height: 800)
+        let expected = [
+            CGRect(x: 20, y: 40, width: 125, height: 800),
+            CGRect(x: 145, y: 40, width: 125, height: 800),
+            CGRect(x: 270, y: 40, width: 126, height: 800),
+            CGRect(x: 396, y: 40, width: 125, height: 800),
+            CGRect(x: 521, y: 40, width: 125, height: 800),
+            CGRect(x: 646, y: 40, width: 126, height: 800),
+            CGRect(x: 772, y: 40, width: 125, height: 800),
+            CGRect(x: 897, y: 40, width: 126, height: 800)
+        ]
+
+        XCTAssertEqual(actions.map { calculate($0, visibleFrame: visibleFrame).rect }, expected)
+    }
+
+    func testVerticalEighthActionsRotateIntoTopToBottomRowsOnPortraitDisplays() {
+        let visibleFrame = CGRect(x: 20, y: 40, width: 800, height: 1003)
+        let expected = [
+            CGRect(x: 20, y: 918, width: 800, height: 125),
+            CGRect(x: 20, y: 793, width: 800, height: 125),
+            CGRect(x: 20, y: 667, width: 800, height: 126),
+            CGRect(x: 20, y: 542, width: 800, height: 125),
+            CGRect(x: 20, y: 417, width: 800, height: 125),
+            CGRect(x: 20, y: 291, width: 800, height: 126),
+            CGRect(x: 20, y: 166, width: 800, height: 125),
+            CGRect(x: 20, y: 40, width: 800, height: 126)
+        ]
+
+        XCTAssertEqual(actions.map { calculate($0, visibleFrame: visibleFrame).rect }, expected)
+    }
+
+    func testFirstVerticalEighthCyclesForwardAndWraps() {
+        withSubsequentExecutionMode(.resize) {
+            let visibleFrame = CGRect(x: 20, y: 40, width: 800, height: 400)
+            let results = repeatedResults(for: .firstVerticalEighth, count: 9, visibleFrame: visibleFrame)
+            XCTAssertEqual(results.map { $0.rect.minX }, [20, 120, 220, 320, 420, 520, 620, 720, 20])
+        }
+    }
+
+    func testLastVerticalEighthCyclesBackwardAndWraps() {
+        withSubsequentExecutionMode(.resize) {
+            let visibleFrame = CGRect(x: 20, y: 40, width: 800, height: 400)
+            let results = repeatedResults(for: .lastVerticalEighth, count: 9, visibleFrame: visibleFrame)
+            XCTAssertEqual(results.map { $0.rect.minX }, [720, 620, 520, 420, 320, 220, 120, 20, 720])
+        }
+    }
+
+    func testEndpointCyclingResetsForUnrelatedOrOppositeLastAction() {
+        withSubsequentExecutionMode(.resize) {
+            let visibleFrame = CGRect(x: 20, y: 40, width: 800, height: 400)
+            let unrelated = RectangleAction(action: .leftHalf, subAction: .leftThird, rect: .zero)
+            XCTAssertEqual(calculate(.firstVerticalEighth, visibleFrame: visibleFrame, lastAction: unrelated).rect.minX, 20)
+            XCTAssertEqual(calculate(.lastVerticalEighth, visibleFrame: visibleFrame, lastAction: unrelated).rect.minX, 720)
+
+            let lastResult = calculate(.lastVerticalEighth, visibleFrame: visibleFrame)
+            let lastEndpoint = RectangleAction(action: .lastVerticalEighth, subAction: lastResult.subAction, rect: lastResult.rect)
+            XCTAssertEqual(calculate(.firstVerticalEighth, visibleFrame: visibleFrame, lastAction: lastEndpoint).rect.minX, 20)
+
+            let firstResult = calculate(.firstVerticalEighth, visibleFrame: visibleFrame)
+            let firstEndpoint = RectangleAction(action: .firstVerticalEighth, subAction: firstResult.subAction, rect: firstResult.rect)
+            XCTAssertEqual(calculate(.lastVerticalEighth, visibleFrame: visibleFrame, lastAction: firstEndpoint).rect.minX, 720)
+        }
+    }
+
+    func testEndpointCyclingIsDisabledWhenSubsequentExecutionModeIsNone() {
+        withSubsequentExecutionMode(.none) {
+            let visibleFrame = CGRect(x: 20, y: 40, width: 800, height: 400)
+            XCTAssertEqual(repeatedResults(for: .firstVerticalEighth, count: 3, visibleFrame: visibleFrame).map { $0.rect.minX },
+                           [20, 20, 20])
+            XCTAssertEqual(repeatedResults(for: .lastVerticalEighth, count: 3, visibleFrame: visibleFrame).map { $0.rect.minX },
+                           [720, 720, 720])
+        }
+    }
+
+    func testMiddleVerticalEighthActionsStayAtTheirOwnOrdinalWhenRepeated() {
+        withSubsequentExecutionMode(.resize) {
+            let visibleFrame = CGRect(x: 20, y: 40, width: 800, height: 400)
+            for (index, action) in actions.dropFirst().dropLast().enumerated() {
+                let expectedX = CGFloat(120 + index * 100)
+                let results = repeatedResults(for: action, count: 3, visibleFrame: visibleFrame)
+                XCTAssertEqual(results.map { $0.rect.minX }, [expectedX, expectedX, expectedX])
+            }
+        }
+    }
+
+    func testVerticalEighthResultingSubActionsProvideLandscapeGapEdges() {
+        let visibleFrame = CGRect(x: 20, y: 40, width: 1003, height: 800)
+        let expected: [Edge] = [
+            .right,
+            [.left, .right], [.left, .right], [.left, .right],
+            [.left, .right], [.left, .right], [.left, .right],
+            .left
+        ]
+
+        for (index, action) in actions.enumerated() {
+            XCTAssertEqual(calculate(action, visibleFrame: visibleFrame).subAction?.gapSharedEdge, expected[index])
+        }
+    }
+
+    func testVerticalEighthResultingSubActionsProvidePortraitGapEdges() {
+        let visibleFrame = CGRect(x: 20, y: 40, width: 800, height: 1003)
+        let expected: [Edge] = [
+            .bottom,
+            [.top, .bottom], [.top, .bottom], [.top, .bottom],
+            [.top, .bottom], [.top, .bottom], [.top, .bottom],
+            .top
+        ]
+
+        for (index, action) in actions.enumerated() {
+            XCTAssertEqual(calculate(action, visibleFrame: visibleFrame).subAction?.gapSharedEdge, expected[index])
+        }
+    }
+
+    func testVerticalEighthActionsRemainTerminalConfigurableThroughActiveActionNames() {
+        let suiteName = "VerticalEighthActionTests.\(UUID().uuidString)"
+        let userDefaults = UserDefaults(suiteName: suiteName)!
+        defer { userDefaults.removePersistentDomain(forName: suiteName) }
+        let shortcut = MASShortcut(keyCode: 18, modifierFlags: [.control, .option, .shift])
+        let transformer = ValueTransformer(forName: NSValueTransformerName(rawValue: MASDictionaryTransformerName))!
+        userDefaults.set(transformer.reverseTransformedValue(shortcut), forKey: WindowAction.firstVerticalEighth.name)
+
+        XCTAssertTrue(WindowAction.active.contains(.firstVerticalEighth))
+        let loaded = ShortcutCycle.shortcutsByAction(userDefaults: userDefaults)[.firstVerticalEighth]
+        XCTAssertEqual(loaded?.keyCode, shortcut.keyCode)
+        XCTAssertEqual(loaded?.modifierFlags, shortcut.modifierFlags)
+    }
+
+    func testVerticalEighthActionsAreHiddenFromNormalUI() throws {
+        XCTAssertTrue(actions.allSatisfy(\.excludedFromMenu))
+        XCTAssertTrue(actions.allSatisfy { !$0.isDragSnappable })
+
+        let controller = ShortcutsViewController()
+        _ = controller.view
+        let outlineView = try XCTUnwrap(findOutlineView(in: controller.view))
+        let rootCount = controller.outlineView(outlineView, numberOfChildrenOfItem: nil)
+
+        var found: [WindowAction] = []
+        func collect(from item: Any?) {
+            let count = controller.outlineView(outlineView, numberOfChildrenOfItem: item)
+            for index in 0..<count {
+                let child = controller.outlineView(outlineView, child: index, ofItem: item)
+                if let shortcut = child as? ShortcutItem, actions.contains(shortcut.action) {
+                    found.append(shortcut.action)
+                }
+                collect(from: child)
+            }
+        }
+
+        for index in 0..<rootCount {
+            collect(from: controller.outlineView(outlineView, child: index, ofItem: nil))
+        }
+
+        XCTAssertTrue(found.isEmpty)
+    }
+
+    private func calculate(_ action: WindowAction,
+                           visibleFrame: CGRect,
+                           lastAction: RectangleAction? = nil) -> RectResult {
+        WindowCalculationFactory.calculationsByAction[action]!.calculateRect(
+            RectCalculationParameters(window: Window(id: 1, rect: visibleFrame),
+                                      visibleFrameOfScreen: visibleFrame,
+                                      action: action,
+                                      lastAction: lastAction)
+        )
+    }
+
+    private func repeatedResults(for action: WindowAction,
+                                 count: Int,
+                                 visibleFrame: CGRect) -> [RectResult] {
+        var lastAction: RectangleAction?
+        return (0..<count).map { _ in
+            let result = calculate(action, visibleFrame: visibleFrame, lastAction: lastAction)
+            lastAction = RectangleAction(action: action, subAction: result.subAction, rect: result.rect)
+            return result
+        }
+    }
+
+    private func withSubsequentExecutionMode(_ mode: SubsequentExecutionMode, _ body: () -> Void) {
+        let saved = Defaults.subsequentExecutionMode.value
+        defer { Defaults.subsequentExecutionMode.value = saved }
+        Defaults.subsequentExecutionMode.value = mode
+        body()
+    }
+
+    private func findOutlineView(in view: NSView) -> NSOutlineView? {
+        if let outlineView = view as? NSOutlineView { return outlineView }
+        for subview in view.subviews {
+            if let outlineView = findOutlineView(in: subview) { return outlineView }
+        }
+        return nil
+    }
+}
+
 class WindowActionMenuTests: XCTestCase {
 
     func testRowsAndColumnsShareOptionalSubmenu() throws {
@@ -4997,12 +5218,13 @@ final class DragRestorePlacementTests: XCTestCase {
 }
 
 final class DragRestoreReleaseTests: XCTestCase {
-    private final class WindowElement: AccessibilityElement {
+    private final class WindowElement: WindowAnimationElement {
         var currentFrame = CGRect(x: 120, y: 120, width: 800, height: 600)
         var writes: [CGRect] = []
         override var frame: CGRect { currentFrame }
         override func beginAnimatedAdjustment() -> () -> Void { {} }
         override func setAnimationFrame(_ frame: CGRect, resizeOnly: Bool = false) -> Bool { true }
+
         override func setFrame(_ frame: CGRect, adjustSizeFirst: Bool = true, adjustPosition: Bool = true) {
             currentFrame.size = frame.size
             if adjustPosition { currentFrame.origin = frame.origin }
@@ -5050,10 +5272,11 @@ final class DragRestoreReleaseTests: XCTestCase {
     }
 
     func testDirectAnimationWithoutServerIdentityCompletesOnceAndMouseUpDoesNotRepeatIt() throws {
+        let animator = DirectWindowAnimator(enabled: { true }, automaticallyAdvances: false, environmentIsSafe: { true })
         let saved = Defaults.experimentalWindowAnimations.enabled
         Defaults.experimentalWindowAnimations.enabled = true
         defer {
-            WindowAnimator.shared.finish()
+            animator.finish()
             Defaults.experimentalWindowAnimations.enabled = saved
         }
         try XCTSkipUnless(WindowAnimator.enabled, "Window animations are disabled by accessibility settings")
@@ -5061,19 +5284,19 @@ final class DragRestoreReleaseTests: XCTestCase {
         XCTAssertNil(window.windowId, "Direct animation does not require a WindowServer identity")
         let destination = CGRect(x: 300, y: 120, width: 500, height: 400)
         var completedFrames: [CGRect] = []
-        WindowAnimator.shared.animate(window, to: destination, duration: 0.18) { completedFrames.append($0) }
+        animator.animate(window, to: destination, duration: 0.18, resizeOnly: false, placement: nil, offset: { .zero }) { completedFrames.append($0) }
 
         XCTAssertTrue(completedFrames.isEmpty)
-        XCTAssertEqual(WindowAnimator.shared.destination(for: window), destination)
-        WindowAnimator.shared.finish()
+        XCTAssertEqual(animator.destination(for: window), destination)
+        animator.finish()
         XCTAssertEqual(completedFrames, [destination])
-        XCTAssertNil(WindowAnimator.shared.destination(for: window))
+        XCTAssertNil(animator.destination(for: window))
 
         let manager = try release(dragAlreadyDetected: true)
 
         XCTAssertEqual(completedFrames, [destination], "A later native release must not repeat the completed animation")
         XCTAssertEqual(manager.restores, 0)
-        XCTAssertNil(WindowAnimator.shared.destination(for: window))
+        XCTAssertNil(animator.destination(for: window))
     }
 }
 
@@ -7319,3 +7542,427 @@ private final class RepeatedMaximizeTestScreen: NSScreen {
         (object as AnyObject?) === self
     }
 }
+
+@MainActor
+final class TitleBarTabButtonPressSchedulingTests: XCTestCase {
+    private func mouseEvent(_ type: CGEventType, window: CGWindowID = 42) throws -> NSEvent {
+        let event = try XCTUnwrap(CGEvent(mouseEventSource: nil, mouseType: type,
+                                        mouseCursorPosition: CGPoint(x: 20, y: 20), mouseButton: .left))
+        event.setIntegerValueField(.mouseEventClickState, value: 1)
+        event.setIntegerValueField(.mouseEventWindowUnderMousePointerThatCanHandleThisEvent, value: Int64(window))
+        return try XCTUnwrap(NSEvent(cgEvent: event))
+    }
+
+    func testWindowOwnerLookupRunsOnWorker() throws {
+        let worker = DispatchQueue(label: "titlebar-test-owner")
+        let key = DispatchSpecificKey<Bool>()
+        worker.setSpecific(key: key, value: true)
+        let lookedUp = expectation(description: "owner resolved off input thread")
+        let press = TitleBarTabButtonPress(worker: worker) { window in
+            XCTAssertEqual(window, 42)
+            XCTAssertEqual(DispatchQueue.getSpecific(key: key), true)
+            XCTAssertFalse(Thread.isMainThread)
+            lookedUp.fulfill()
+            return nil
+        }
+        press.handle(try mouseEvent(.leftMouseDown)) { XCTFail("mouse-down must not perform an action") }
+        wait(for: [lookedUp], timeout: 1)
+        press.stop()
+    }
+
+    func testDragCancelsQueuedLookupBeforeItContactsWindowServer() throws {
+        let worker = DispatchQueue(label: "titlebar-test-drag")
+        let press = TitleBarTabButtonPress(worker: worker) { _ in
+            XCTFail("cancelled click must not resolve or hit-test its window")
+            return nil
+        }
+        let down = try mouseEvent(.leftMouseDown)
+        let drag = try mouseEvent(.leftMouseDragged)
+        worker.suspend()
+        press.handle(down) {}
+        press.handle(drag) {}
+        let drained = expectation(description: "cancelled worker request drained")
+        worker.async { drained.fulfill() }
+        worker.resume()
+        wait(for: [drained], timeout: 1)
+        press.stop()
+    }
+
+    func testNewClickSkipsOldLookupAndResolvesTheNewEventWindow() throws {
+        let worker = DispatchQueue(label: "titlebar-test-replacement")
+        let lookedUp = expectation(description: "only replacement click resolved")
+        let press = TitleBarTabButtonPress(worker: worker) { window in
+            XCTAssertEqual(window, 43)
+            lookedUp.fulfill()
+            return nil
+        }
+        let oldDown = try mouseEvent(.leftMouseDown)
+        let newDown = try mouseEvent(.leftMouseDown, window: 43)
+        worker.suspend()
+        press.handle(oldDown) {}
+        press.handle(newDown) {}
+        worker.resume()
+        wait(for: [lookedUp], timeout: 1)
+        press.stop()
+    }
+}
+
+@MainActor
+final class TitleBarHitTestApplicationTests: XCTestCase {
+    func testOwnWindowNeverStartsAnAccessibilityHitTest() throws {
+        let window = NSWindow(contentRect: CGRect(x: 100, y: 100, width: 320, height: 200),
+                              styleMask: [.titled], backing: .buffered, defer: false)
+        window.isReleasedWhenClosed = false
+        window.orderFront(nil)
+        defer { window.close() }
+        let id = CGWindowID(window.windowNumber)
+        let owner = try XCTUnwrap(WindowUtil.getWindowList(ids: [id], forceRefresh: true).first { $0.id == id })
+        XCTAssertEqual(owner.pid, ProcessInfo.processInfo.processIdentifier)
+        XCTAssertNil(TitleBarManager.hitTestApplication(window: id))
+    }
+
+    func testUnknownWindowDoesNotFallBackToSystemWideHitTesting() {
+        XCTAssertNil(TitleBarManager.hitTestApplication(window: 0))
+        XCTAssertNil(TitleBarManager.hitTestApplication(window: CGWindowID.max))
+    }
+}
+
+class TitleBarClickSequenceTests: XCTestCase {
+    private func startedSequence() -> TitleBarClickSequence {
+        let sequence = TitleBarClickSequence()
+        sequence.mouseDown(window: 42, point: CGPoint(x: 20, y: 20), time: 1, count: 1, interval: 0.5)
+        return sequence
+    }
+
+    func testNotificationHandledAfterMouseUpStillVetoesTabClose() throws {
+        let sequence = startedSequence()
+        sequence.mouseDown(window: 42, point: CGPoint(x: 20, y: 20), time: 1.1, count: 2, interval: 0.5)
+        var result: Bool?
+        let click = try XCTUnwrap(sequence.finish(window: 42) { result = $0 })
+        let read = try XCTUnwrap(sequence.beginRead(at: 1.11, interval: 0.5))
+        sequence.endRead(read, positive: true)
+        XCTAssertNil(result)
+        sequence.settle(click)
+        XCTAssertEqual(result, true)
+    }
+
+    func testDecisionWaitsForClassificationStartedBeforeMouseUp() throws {
+        let sequence = startedSequence()
+        let read = try XCTUnwrap(sequence.beginRead(at: 1.01, interval: 0.5))
+        var result: Bool?
+        let click = try XCTUnwrap(sequence.finish(window: 42) { result = $0 })
+        sequence.settle(click)
+        XCTAssertNil(result)
+        sequence.endRead(read, positive: true)
+        XCTAssertEqual(result, true)
+    }
+
+    func testOrdinaryTitleBarClickRunsOnceAfterNegativeClassification() throws {
+        let sequence = startedSequence()
+        let read = try XCTUnwrap(sequence.beginRead(at: 1.01, interval: 0.5))
+        var results: [Bool] = []
+        let click = try XCTUnwrap(sequence.finish(window: 42) { results.append($0) })
+        sequence.settle(click)
+        sequence.endRead(read, positive: false)
+        sequence.settle(click, timedOut: true)
+        XCTAssertEqual(results, [false])
+    }
+
+    func testTimeoutDoesNotBlockTitleBarOrApplyLateResult() throws {
+        let sequence = startedSequence()
+        let read = try XCTUnwrap(sequence.beginRead(at: 1.01, interval: 0.5))
+        var results: [Bool] = []
+        let click = try XCTUnwrap(sequence.finish(window: 42) { results.append($0) })
+        sequence.settle(click, timedOut: true)
+        sequence.endRead(read, positive: true)
+        XCTAssertEqual(results, [false])
+    }
+
+    func testNewClickCancelsOldDecisionAndIgnoresOldClassification() throws {
+        let sequence = startedSequence()
+        let read = try XCTUnwrap(sequence.beginRead(at: 1.01, interval: 0.5))
+        var oldResult: Bool?
+        let old = try XCTUnwrap(sequence.finish(window: 42) { oldResult = $0 })
+        sequence.mouseDown(window: 43, point: .zero, time: 2, count: 1, interval: 0.5)
+        sequence.endRead(read, positive: true)
+        sequence.settle(old, timedOut: true)
+        XCTAssertNil(oldResult)
+        var result: Bool?
+        let click = try XCTUnwrap(sequence.finish(window: 43) { result = $0 })
+        sequence.settle(click)
+        XCTAssertEqual(result, false)
+    }
+
+    func testResetCancelsPendingAction() throws {
+        let sequence = startedSequence()
+        var result: Bool?
+        let click = try XCTUnwrap(sequence.finish(window: 42) { result = $0 })
+        sequence.reset()
+        sequence.settle(click, timedOut: true)
+        XCTAssertNil(result)
+    }
+
+    func testSecondClickOnDifferentWindowOrOutsideIntervalResetsSequence() {
+        for (window, time) in [(CGWindowID(43), 1.1), (CGWindowID(42), 1.6)] {
+            let sequence = startedSequence()
+            sequence.mouseDown(window: window, point: .zero, time: time, count: 2, interval: 0.5)
+            XCTAssertNil(sequence.beginRead(at: time, interval: 0.5))
+        }
+    }
+}
+
+class TitleBarScreenDetectionTests: XCTestCase {
+    private final class TestScreen: NSScreen {
+        let testFrame: CGRect
+        init(_ frame: CGRect) { testFrame = frame; super.init() }
+        override var frame: NSRect { testFrame }
+        override var hash: Int { ObjectIdentifier(self).hashValue }
+        override func isEqual(_ object: Any?) -> Bool { (object as AnyObject?) === self }
+    }
+
+    func testClickedScreenPreservesDisplayCountOrderingAndNeighbors() throws {
+        let left = TestScreen(CGRect(x: -1000, y: 0, width: 1000, height: 800))
+        let right = TestScreen(CGRect(x: 0, y: 0, width: 1000, height: 800))
+        let detection = ScreenDetection(screens: { [right, left] })
+        let screens = try XCTUnwrap(detection.detectScreens(at: left))
+        XCTAssertTrue(screens.currentScreen === left)
+        XCTAssertEqual(screens.numScreens, 2)
+        XCTAssertEqual(screens.screensOrdered, detection.order(screens: [right, left]))
+        XCTAssertTrue(screens.adjacentScreens?.next === right)
+        XCTAssertTrue(screens.adjacentScreens?.prev === right)
+    }
+
+    func testDisconnectedClickedScreenDoesNotBecomeSingleDisplayTopology() {
+        let screen = TestScreen(CGRect(x: 0, y: 0, width: 1000, height: 800))
+        XCTAssertNil(ScreenDetection(screens: { [] }).detectScreens(at: screen))
+    }
+
+    func testClickScreenUsesAppKitCoordinatesIncludingNegativeOrigins() {
+        let left = TestScreen(CGRect(x: -1000, y: 0, width: 1000, height: 800))
+        let above = TestScreen(CGRect(x: 0, y: 800, width: 1000, height: 800))
+        XCTAssertTrue(TitleBarManager.screenForClick(at: CGPoint(x: -50, y: 200), screens: [left, above]) === left)
+        XCTAssertTrue(TitleBarManager.screenForClick(at: CGPoint(x: 50, y: 900), screens: [left, above]) === above)
+        XCTAssertNil(TitleBarManager.screenForClick(at: CGPoint(x: 5000, y: 0), screens: [left, above]))
+    }
+}
+
+final class WindowAnimationSettlementRoundingTests: XCTestCase {
+    private let screen = CGRect(x: 0, y: 0, width: 1000, height: 800)
+
+    private func target(gap: Float = 7) -> CGRect {
+        GapCalculation.applyGaps(CGRect(x: 500, y: 0, width: 500, height: 800),
+                                 sharedEdges: .left, gapSize: gap)
+    }
+
+    private func placement(gap: CGFloat = 7) -> WindowAnimationPlacement {
+        WindowAnimationPlacement(screenFrame: screen, sharedEdges: .right,
+                                 constrainToScreen: true, gap: gap)
+    }
+
+    func testOddGapCompletesAfterOneRoundedPositionWrite() {
+        let target = target()
+        let actual = CGRect(x: 504, y: 7, width: 490, height: 786)
+        var settlement = WindowAnimationSettlement(startedAt: 0, alignmentTolerance: 0.001)
+        let first = settlement.observe(ax: actual, server: actual, destination: target,
+                                       placement: placement(), origin: actual, at: 1.0 / 60)
+        guard case .align(let requested) = first else { return XCTFail("Expected an exact final position write") }
+        XCTAssertEqual(requested.origin, target.origin)
+        let second = settlement.observe(ax: actual, server: actual, destination: target,
+                                        placement: placement(), origin: actual, at: 2.0 / 60)
+        guard case .complete(let achieved) = second else { return XCTFail("Rounded placement must not enter a retry loop") }
+        XCTAssertEqual(achieved, actual)
+    }
+
+    func testFractionalGapAcceptsHalfPointQuantizationAfterExactWrite() {
+        let target = target(gap: 7.5)
+        let actual = CGRect(x: 504, y: 7.5, width: 489, height: 785)
+        var settlement = WindowAnimationSettlement(startedAt: 0, alignmentTolerance: 0.001)
+        _ = settlement.observe(ax: actual, server: actual, destination: target,
+                               placement: placement(gap: 7.5), origin: actual, at: 1.0 / 60)
+        let result = settlement.observe(ax: actual, server: actual, destination: target,
+                                        placement: placement(gap: 7.5), origin: actual, at: 2.0 / 60)
+        guard case .complete(let achieved) = result else { return XCTFail("Expected a verified rounded placement") }
+        XCTAssertEqual(achieved, actual)
+    }
+
+    func testExactFractionalPositionIsUsedWhenAppAcceptsIt() {
+        let target = target()
+        let before = CGRect(x: 504, y: 7, width: 490, height: 786)
+        var settlement = WindowAnimationSettlement(startedAt: 0, alignmentTolerance: 0.001)
+        let first = settlement.observe(ax: before, server: before, destination: target,
+                                       placement: placement(), origin: before, at: 1.0 / 60)
+        guard case .align(let requested) = first else { return XCTFail("Expected exact alignment") }
+        let result = settlement.observe(ax: requested, server: requested, destination: target,
+                                        placement: placement(), origin: before, at: 2.0 / 60)
+        guard case .complete(let achieved) = result else { return XCTFail("Expected the accepted exact position") }
+        XCTAssertEqual(achieved.origin, target.origin)
+    }
+
+    func testDisagreeingServerGeometryDoesNotEstablishRounding() {
+        let target = target()
+        let actual = CGRect(x: 504, y: 7, width: 490, height: 786)
+        var settlement = WindowAnimationSettlement(startedAt: 0, alignmentTolerance: 0.001)
+        let first = settlement.observe(ax: actual, server: actual, destination: target,
+                                       placement: placement(), origin: actual, at: 1.0 / 60)
+        guard case .align(let requested) = first else { return XCTFail("Expected exact alignment") }
+        let result = settlement.observe(ax: actual, server: requested, destination: target,
+                                        placement: placement(), origin: actual, at: 2.0 / 60)
+        if case .complete = result { XCTFail("Different AX and server positions can still be in flight") }
+    }
+
+    func testIntegerTargetStillRequiresExactPosition() {
+        let target = CGRect(x: 503, y: 7, width: 490, height: 786)
+        let actual = target.offsetBy(dx: 1, dy: 0)
+        var settlement = WindowAnimationSettlement(startedAt: 0, alignmentTolerance: 0.001)
+        for step in 1...3 {
+            let result = settlement.observe(ax: actual, server: actual, destination: target,
+                                            placement: placement(), origin: actual, at: Double(step) / 60)
+            if case .complete = result { XCTFail("A full-point residual must still be corrected") }
+        }
+    }
+}
+
+
+final class WindowAnimationRequestCancellationTests: XCTestCase {
+    private final class QueuedWindow: AccessibilityElement {
+        private(set) var minimumSizeReads = 0
+
+        init() { super.init(AXUIElementCreateApplication(getpid())) }
+        override var windowId: CGWindowID? { .max }
+        override var pid: pid_t? { getpid() }
+        override var bundleIdentifier: String? { nil }
+        override var minimumSize: CGSize? {
+            minimumSizeReads += 1
+            return nil
+        }
+    }
+
+    func testTimedOutLookupCancelsWithoutMainThreadPlacementFallback() throws {
+        try assertLookupCompletion(.timedOut, cancels: true)
+    }
+
+    func testObsoleteLookupCancelsWithoutMainThreadPlacementFallback() throws {
+        try assertLookupCompletion(.cancelled, cancels: true)
+    }
+
+    func testUnavailableLookupPreservesOrdinaryPlacementFallback() throws {
+        try assertLookupCompletion(.unavailable, cancels: false)
+    }
+
+    private func assertLookupCompletion(_ result: WindowAccessibilityLookup.Result, cancels: Bool) throws {
+        let saved = Defaults.experimentalWindowAnimations.enabled
+        Defaults.experimentalWindowAnimations.enabled = true
+        defer { Defaults.experimentalWindowAnimations.enabled = saved }
+        try XCTSkipUnless(WindowAnimator.enabled, "Window animations are disabled by accessibility settings")
+        let finished = expectation(description: "Lookup delivered its terminal callback")
+        let executor = WindowAnimator(lookupWindow: { _, _, _, _, _ in
+            XCTAssertFalse(Thread.isMainThread)
+            return result
+        })
+        let window = QueuedWindow()
+        var cancellations = 0
+        var completions = 0
+        executor.animate(window, to: CGRect(x: 100, y: 100, width: 500, height: 400),
+                         duration: 0.18, resizeOnly: false, releasedSnap: false, placement: nil,
+                         profile: .standard, offset: { .zero }, curve: WindowAnimationCurve.value,
+                         cancellation: {
+                             XCTAssertTrue(Thread.isMainThread)
+                             cancellations += 1
+                             finished.fulfill()
+                         }) { frame in
+            XCTAssertTrue(Thread.isMainThread)
+            XCTAssertTrue(frame.isNull)
+            completions += 1
+            finished.fulfill()
+        }
+        wait(for: [finished], timeout: 1)
+        XCTAssertEqual(cancellations, cancels ? 1 : 0)
+        XCTAssertEqual(completions, cancels ? 0 : 1)
+        XCTAssertNil(executor.destination(for: window))
+        XCTAssertEqual(window.minimumSizeReads, 0)
+    }
+
+    func testQueuedAnimationDoesNotReadMinimumSizeBeforeWorkerCanStart() throws {
+        let saved = Defaults.experimentalWindowAnimations.enabled
+        Defaults.experimentalWindowAnimations.enabled = true
+        defer { Defaults.experimentalWindowAnimations.enabled = saved }
+        try XCTSkipUnless(WindowAnimator.enabled, "Window animations are disabled by accessibility settings")
+
+        let queue = DispatchQueue(label: "RectangleTests.Animation")
+        let executor = WindowAnimator(queue: queue)
+        let workerStarted = expectation(description: "Worker is occupied")
+        let workerDrained = expectation(description: "Cancelled preparation drained")
+        let release = DispatchSemaphore(value: 0)
+        queue.async {
+            workerStarted.fulfill()
+            _ = release.wait(timeout: .now() + 2)
+        }
+        wait(for: [workerStarted], timeout: 1)
+        let window = QueuedWindow()
+        let destination = CGRect(x: 100, y: 100, width: 500, height: 400)
+        var cancellations = 0
+        var completions = 0
+        executor.animate(window, to: destination, duration: 0.18, resizeOnly: false, releasedSnap: false,
+                         placement: nil, profile: .standard, offset: { .zero }, curve: WindowAnimationCurve.value,
+                         cancellation: { cancellations += 1 }) { _ in completions += 1 }
+        XCTAssertEqual(executor.destination(for: window), destination)
+        XCTAssertEqual(window.minimumSizeReads, 0, "Optional AX metadata must never be queried through the main-thread handle")
+        executor.cancel()
+        queue.async { workerDrained.fulfill() }
+        release.signal()
+        wait(for: [workerDrained], timeout: 1)
+        XCTAssertEqual(cancellations, 1)
+        XCTAssertEqual(completions, 0)
+        XCTAssertEqual(window.minimumSizeReads, 0)
+    }
+
+    func testCancellationRunsCleanupOnceAfterInvalidatingWrites() {
+        var cancellations = 0
+        var request: WindowAnimationRequest!
+        request = WindowAnimationRequest(cancellation: {
+            XCTAssertFalse(request.isCurrent)
+            cancellations += 1
+        })
+        XCTAssertTrue(request.isCurrent)
+        request.cancel()
+        request.cancel()
+        request.complete()
+        XCTAssertEqual(cancellations, 1)
+    }
+
+    func testCompletedRequestDoesNotRunCancellationCleanup() {
+        var cancellations = 0
+        let request = WindowAnimationRequest(cancellation: { cancellations += 1 })
+        request.complete()
+        request.cancel()
+        XCTAssertFalse(request.isCurrent)
+        XCTAssertEqual(cancellations, 0)
+    }
+
+    func testSupersededPendingWriteRunsOnlyCancellationCleanup() throws {
+        let saved = Defaults.experimentalWindowAnimations.enabled
+        Defaults.experimentalWindowAnimations.enabled = true
+        defer { Defaults.experimentalWindowAnimations.enabled = saved }
+        try XCTSkipUnless(WindowAnimator.enabled, "Animations disabled by accessibility settings")
+        let queue = DispatchQueue(label: "RectangleTests.Animation")
+        let executor = WindowAnimator(queue: queue)
+        let workerStarted = expectation(description: "Worker is occupied")
+        let cancelled = expectation(description: "Pending placement was cancelled")
+        let release = DispatchSemaphore(value: 0)
+        queue.async {
+            workerStarted.fulfill()
+            _ = release.wait(timeout: .now() + 2)
+        }
+        wait(for: [workerStarted], timeout: 1)
+        var completions = 0
+        executor.animate(QueuedWindow(), to: CGRect(x: 20, y: 20, width: 600, height: 400)) { _ in
+            XCTFail("A superseded animation must not complete")
+        }
+        executor.afterPendingWrites(cancellation: { cancelled.fulfill() }) { completions += 1 }
+        executor.cancel()
+        release.signal()
+        wait(for: [cancelled], timeout: 1)
+        XCTAssertEqual(completions, 0)
+    }
+}
+
