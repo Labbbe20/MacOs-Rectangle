@@ -68,13 +68,26 @@ jobs:
 
           git fetch --prune upstream "+refs/heads/${UPSTREAM_BRANCH}:refs/remotes/upstream/${UPSTREAM_BRANCH}"
 
-          upstream_head="$(git rev-parse "refs/remotes/upstream/${UPSTREAM_BRANCH}")"
-          source_changed=true
-          if git merge-base --is-ancestor "$upstream_head" HEAD; then
-            source_changed=false
+          sync_patch="$(mktemp)"
+          git diff --binary HEAD "refs/remotes/upstream/${UPSTREAM_BRANCH}" -- . \
+            ':(exclude).github/workflows/**' \
+            ':(exclude).github/upstream-sync/**' \
+            > "$sync_patch"
+
+          source_changed=false
+          if [ -s "$sync_patch" ]; then
+            git apply --index "$sync_patch"
+            git commit -m "Mirror upstream source"
+            source_changed=true
+          else
+            echo "Source files are already in sync."
           fi
 
-          git merge --no-edit "refs/remotes/upstream/${UPSTREAM_BRANCH}"
+          workflow_diff="$(git diff --name-only HEAD "refs/remotes/upstream/${UPSTREAM_BRANCH}" -- .github/workflows || true)"
+          if [ -n "$workflow_diff" ]; then
+            echo "::warning::Upstream workflow-file differences were left out because GitHub Actions tokens cannot update workflow files."
+            printf '%s\n' "$workflow_diff"
+          fi
 
           mkdir -p "$(dirname "$KEEPALIVE_MARKER")"
           now_iso="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
