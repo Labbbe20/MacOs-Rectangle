@@ -458,7 +458,7 @@ jobs:
     if: >-
       needs.mirror.outputs.source_changed == 'true' ||
       github.event_name == 'workflow_dispatch'
-    runs-on: macos-27
+    runs-on: xcode-27
     timeout-minutes: 45
     continue-on-error: true
     permissions:
