@@ -5,6 +5,55 @@ import MASShortcut
 import XCTest
 @testable import Rectangle
 
+final class AccessibilityWindowResolutionTests: XCTestCase {
+    // These wrappers are identity tokens only; the resolver never contacts AX.
+    private let element = AccessibilityElement(AXUIElementCreateApplication(42))
+    private let parent = AccessibilityElement(AXUIElementCreateApplication(43))
+
+    func testStandardWindowWithLegacyTextFieldRoleResolvesToItself() {
+        // Emacs 28 reports AXTextField/AXStandardWindow and no AXWindow attribute.
+        let resolved = AccessibilityElement.resolveWindowElement(element, isWindow: false,
+            containingWindow: { nil }, subrole: { .standardWindow })
+        XCTAssertEqual(resolved, element)
+    }
+
+    func testWindowRoleResolvesToItselfWithoutReadingOtherAttributes() {
+        let resolved = AccessibilityElement.resolveWindowElement(element, isWindow: true,
+            containingWindow: {
+                XCTFail("AXWindow must not be read for a window element")
+                return nil
+            }, subrole: {
+                XCTFail("AXSubrole must not be read for a window element")
+                return nil
+            })
+        XCTAssertEqual(resolved, element)
+    }
+
+    func testTextFieldChildResolvesToItsContainingWindowBeforeUsingSubrole() {
+        let resolved = AccessibilityElement.resolveWindowElement(element, isWindow: false,
+            containingWindow: { self.parent }, subrole: {
+                XCTFail("A child with AXWindow must use its containing window")
+                return .standardWindow
+            })
+        XCTAssertEqual(resolved, parent)
+        XCTAssertNotEqual(resolved, element)
+    }
+
+    func testOrdinaryTextFieldWithoutContainingWindowDoesNotBecomeAWindow() {
+        for isWindow in [false, nil] as [Bool?] {
+            XCTAssertNil(AccessibilityElement.resolveWindowElement(element, isWindow: isWindow,
+                containingWindow: { nil }, subrole: { nil }))
+        }
+    }
+
+    func testFallbackOnlyRecognizesTheStandardWindowSubrole() {
+        for subrole in [NSAccessibility.Subrole.dialog, .systemDialog, .floatingWindow, .systemFloatingWindow] {
+            XCTAssertNil(AccessibilityElement.resolveWindowElement(element, isWindow: false,
+                containingWindow: { nil }, subrole: { subrole }), subrole.rawValue)
+        }
+    }
+}
+
 final class EarlySnapEdgeTests: XCTestCase {
     private let frame = CGRect(x: 0, y: 0, width: 1440, height: 900)
     private let margins = NSEdgeInsets(top: 5, left: 5, bottom: 5, right: 5)
@@ -1965,6 +2014,21 @@ class DefaultsExportTests: XCTestCase {
     func testMouseButtonSettingInExportArray() {
         let keys = Defaults.array.map { $0.key }
         XCTAssertTrue(keys.contains("mouseButtonShortcutsUseWindowUnderCursor"), "mouseButtonShortcutsUseWindowUnderCursor missing from Defaults.array")
+    }
+}
+
+final class BundleIdentityTests: XCTestCase {
+
+    func testDebugBuildsUseTheirOwnBundleIdentifier() {
+        // Keeps a build from Xcode from sharing the installed app's
+        // Accessibility permission and preferences.
+        XCTAssertEqual(Bundle.main.bundleIdentifier, "com.knollsoft.Rectangle.debug")
+    }
+
+    func testExportedConfigKeepsTheReleaseBundleIdentifier() throws {
+        let json = try XCTUnwrap(Defaults.encoded())
+        let config = try XCTUnwrap(Defaults.convert(jsonString: json))
+        XCTAssertEqual(config.bundleId, "com.knollsoft.Rectangle")
     }
 }
 
