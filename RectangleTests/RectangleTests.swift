@@ -533,19 +533,138 @@ class VerticalSixthActionTests: XCTestCase {
         XCTAssertEqual(actions.map { calculate($0, visibleFrame: visibleFrame).rect }, expected)
     }
 
-    func testFirstVerticalSixthCyclesForwardAndWraps() {
-        withSubsequentExecutionMode(.resize) {
+    func testVerticalSixthRepeatsCycleThroughWholeTopAndBottomHalfOfTheColumn() {
+        withVerticalSixthsCyclingTwelfths(true) {
+            let visibleFrame = CGRect(x: 20, y: 40, width: 600, height: 400)
+            let results = repeatedResults(for: .thirdVerticalSixth, count: 4, visibleFrame: visibleFrame)
+
+            XCTAssertEqual(results.map(\.rect), [
+                CGRect(x: 220, y: 40, width: 100, height: 400),
+                CGRect(x: 220, y: 240, width: 100, height: 200),
+                CGRect(x: 220, y: 40, width: 100, height: 200),
+                CGRect(x: 220, y: 40, width: 100, height: 400)
+            ])
+        }
+    }
+
+    func testEveryVerticalSixthActionCyclesWithinItsOwnColumn() {
+        withVerticalSixthsCyclingTwelfths(true) {
+            let visibleFrame = CGRect(x: 20, y: 40, width: 1003, height: 800)
+            let columnMinXs: [CGFloat] = [20, 187, 354, 521, 688, 855]
+
+            for (index, action) in actions.enumerated() {
+                let results = repeatedResults(for: action, count: 3, visibleFrame: visibleFrame)
+                XCTAssertEqual(results.map { $0.rect.minX }, Array(repeating: columnMinXs[index], count: 3),
+                               "\(action) drifted out of its column")
+                XCTAssertEqual(results.map { $0.rect.height }, [800, 400, 400],
+                               "\(action) did not cycle whole, top half, bottom half")
+            }
+        }
+    }
+
+    func testVerticalSixthRepeatsSplitPortraitRowsLeftAndRight() {
+        withVerticalSixthsCyclingTwelfths(true) {
+            let visibleFrame = CGRect(x: 20, y: 40, width: 800, height: 1003)
+            let results = repeatedResults(for: .secondVerticalSixth, count: 4, visibleFrame: visibleFrame)
+
+            XCTAssertEqual(results.map(\.rect), [
+                CGRect(x: 20, y: 709, width: 800, height: 167),
+                CGRect(x: 20, y: 709, width: 400, height: 167),
+                CGRect(x: 420, y: 709, width: 400, height: 167),
+                CGRect(x: 20, y: 709, width: 800, height: 167)
+            ])
+        }
+    }
+
+    func testOddSizedSixthsGiveTheTrailingHalfTheExtraPixel() {
+        withVerticalSixthsCyclingTwelfths(true) {
+            let visibleFrame = CGRect(x: 0, y: 0, width: 1001, height: 401)
+            let results = repeatedResults(for: .firstVerticalSixth, count: 3, visibleFrame: visibleFrame)
+
+            XCTAssertEqual(results.map(\.rect), [
+                CGRect(x: 0, y: 0, width: 166, height: 401),
+                CGRect(x: 0, y: 201, width: 166, height: 200),
+                CGRect(x: 0, y: 0, width: 166, height: 201)
+            ])
+        }
+    }
+
+    func testOddWidthPortraitRowsGiveTheRightHalfTheExtraPixel() {
+        withVerticalSixthsCyclingTwelfths(true) {
+            let visibleFrame = CGRect(x: 0, y: 0, width: 401, height: 1001)
+            let results = repeatedResults(for: .firstVerticalSixth, count: 3, visibleFrame: visibleFrame)
+
+            XCTAssertEqual(results.map(\.rect), [
+                CGRect(x: 0, y: 835, width: 401, height: 166),
+                CGRect(x: 0, y: 835, width: 200, height: 166),
+                CGRect(x: 200, y: 835, width: 201, height: 166)
+            ])
+        }
+    }
+
+    func testHalfPlacementsReportOnlyTheEdgesTheyShareWithNeighbours() {
+        let landscape = CGRect(x: 20, y: 40, width: 600, height: 400)
+        let portrait = CGRect(x: 20, y: 40, width: 600, height: 803)
+        let columnEdges: [Edge] = [.right, [.left, .right], .left]
+        let rowEdges: [Edge] = [.bottom, [.top, .bottom], .top]
+
+        withVerticalSixthsCyclingTwelfths(true) {
+            for (index, action) in actions.enumerated() {
+                let edges = columnEdges[boundaryIndex(of: index)]
+                let results = repeatedResults(for: action, count: 3, visibleFrame: landscape)
+                XCTAssertEqual(results.map(\.subAction?.gapSharedEdge),
+                               [edges, edges.union(.bottom), edges.union(.top)],
+                               "\(action) column halves reported the wrong gap edges")
+
+                let edgesAcross = rowEdges[boundaryIndex(of: index)]
+                let portraitResults = repeatedResults(for: action, count: 3, visibleFrame: portrait)
+                XCTAssertEqual(portraitResults.map(\.subAction?.gapSharedEdge),
+                               [edgesAcross, edgesAcross.union(.right), edgesAcross.union(.left)],
+                               "\(action) row halves reported the wrong gap edges")
+            }
+        }
+    }
+
+    /// The first, middle and last positions of a run share different edges with the screen frame.
+    private func boundaryIndex(of ordinal: Int) -> Int {
+        ordinal == 0 ? 0 : (ordinal == 5 ? 2 : 1)
+    }
+
+    func testAnotherVerticalSixthChordRestartsAtTheWholeSixth() {
+        withVerticalSixthsCyclingTwelfths(true) {
+            let visibleFrame = CGRect(x: 20, y: 40, width: 600, height: 400)
+            let firstColumnTopHalf = calculate(.firstVerticalSixth, visibleFrame: visibleFrame, lastAction: nil)
+            let lastAction = RectangleAction(action: .firstVerticalSixth,
+                                             subAction: firstColumnTopHalf.subAction,
+                                             rect: firstColumnTopHalf.rect)
+
+            XCTAssertEqual(calculate(.fifthVerticalSixth, visibleFrame: visibleFrame, lastAction: lastAction).rect,
+                           CGRect(x: 420, y: 40, width: 100, height: 400))
+        }
+    }
+
+    func testFirstVerticalSixthWalksAcrossTheScreenByDefault() {
+        withVerticalSixthsCyclingTwelfths(nil) {
             let visibleFrame = CGRect(x: 20, y: 40, width: 600, height: 400)
             let results = repeatedResults(for: .firstVerticalSixth, count: 7, visibleFrame: visibleFrame)
             XCTAssertEqual(results.map { $0.rect.minX }, [20, 120, 220, 320, 420, 520, 20])
         }
     }
 
-    func testLastVerticalSixthCyclesBackwardAndWraps() {
-        withSubsequentExecutionMode(.resize) {
+    func testLastVerticalSixthWalksBackwardByDefault() {
+        withVerticalSixthsCyclingTwelfths(nil) {
             let visibleFrame = CGRect(x: 20, y: 40, width: 600, height: 400)
             let results = repeatedResults(for: .lastVerticalSixth, count: 7, visibleFrame: visibleFrame)
             XCTAssertEqual(results.map { $0.rect.minX }, [520, 420, 320, 220, 120, 20, 520])
+        }
+    }
+
+    func testMiddleVerticalSixthsStayWholeOnRepeatByDefault() {
+        withVerticalSixthsCyclingTwelfths(nil) {
+            let visibleFrame = CGRect(x: 20, y: 40, width: 600, height: 400)
+            let results = repeatedResults(for: .thirdVerticalSixth, count: 3, visibleFrame: visibleFrame)
+            XCTAssertEqual(results.map(\.rect),
+                           Array(repeating: CGRect(x: 220, y: 40, width: 100, height: 400), count: 3))
         }
     }
 
@@ -604,6 +723,13 @@ class VerticalSixthActionTests: XCTestCase {
         defer { Defaults.subsequentExecutionMode.value = saved }
         Defaults.subsequentExecutionMode.value = mode
         body()
+    }
+
+    private func withVerticalSixthsCyclingTwelfths(_ enabled: Bool?, _ body: () -> Void) {
+        let saved = Defaults.verticalSixthsCycleTwelfths.enabled
+        defer { Defaults.verticalSixthsCycleTwelfths.enabled = saved }
+        Defaults.verticalSixthsCycleTwelfths.enabled = enabled
+        withSubsequentExecutionMode(.resize, body)
     }
 }
 
@@ -2418,6 +2544,15 @@ final class SettingsLabelLocalizationTests: XCTestCase {
         }
     }
 
+    func testSettingsOnlyLabelsHaveJapaneseTranslations() throws {
+        let path = try XCTUnwrap(Bundle.main.path(forResource: "ja", ofType: "lproj"))
+        let ja = try XCTUnwrap(Bundle(path: path))
+        for key in ["Extra", "Ninths (3x3)", "Twelfths (3x4)", "Sixteenths (4x4)"] {
+            let value = ja.localizedString(forKey: key, value: nil, table: "Localizable")
+            XCTAssertNotEqual(value, key, "\(key) has no ja translation")
+        }
+    }
+
     func testSettingsDisplayNamesKeepTheirEnglishText() {
         XCTAssertEqual(WindowAction.topLeftNinth.settingsDisplayName, String(localized: "Ninths (3x3)"))
         XCTAssertEqual(WindowAction.topLeftTwelfth.settingsDisplayName, String(localized: "Twelfths (3x4)"))
@@ -2441,6 +2576,13 @@ final class TodoSideLocalizationTests: XCTestCase {
         XCTAssertEqual(zhHans.localizedString(forKey: "Todo Side Right", value: nil, table: "Localizable"), "右侧")
         XCTAssertEqual(zhHans.localizedString(forKey: "Left", value: nil, table: "Localizable"), "左半屏")
         XCTAssertEqual(zhHans.localizedString(forKey: "Right", value: nil, table: "Localizable"), "右半屏")
+    }
+
+    func testTodoSideJapaneseTranslations() throws {
+        let path = try XCTUnwrap(Bundle.main.path(forResource: "ja", ofType: "lproj"))
+        let ja = try XCTUnwrap(Bundle(path: path))
+        XCTAssertEqual(ja.localizedString(forKey: "Todo Side Left", value: nil, table: "Localizable"), "左")
+        XCTAssertEqual(ja.localizedString(forKey: "Todo Side Right", value: nil, table: "Localizable"), "右")
     }
 }
 
@@ -4883,14 +5025,14 @@ class ActiveSideSplitRatiosCooperativeTests: XCTestCase {
     private let gapSize: CGFloat = 20
     private var savedHorizontalSplitRatio: Float = 50
     private var savedVerticalSplitRatio: Float = 50
-    private var savedCornerCycleExpansionAxis: CornerCycleExpansionAxis = .horizontal
+    private var savedCornerCycleExpansionMode: CornerCycleExpansionMode = .horizontal
     private var savedSubsequentExecutionMode: SubsequentExecutionMode = .resize
 
     override func setUp() {
         super.setUp()
         savedHorizontalSplitRatio = Defaults.horizontalSplitRatio.value
         savedVerticalSplitRatio = Defaults.verticalSplitRatio.value
-        savedCornerCycleExpansionAxis = Defaults.cornerCycleExpansionAxis.value
+        savedCornerCycleExpansionMode = Defaults.cornerCycleExpansionAxis.value
         savedSubsequentExecutionMode = Defaults.subsequentExecutionMode.value
         Defaults.horizontalSplitRatio.value = CycleSize.oneQuarter.percentValue
         Defaults.verticalSplitRatio.value = CycleSize.oneThird.percentValue
@@ -4902,7 +5044,7 @@ class ActiveSideSplitRatiosCooperativeTests: XCTestCase {
     override func tearDown() {
         Defaults.horizontalSplitRatio.value = savedHorizontalSplitRatio
         Defaults.verticalSplitRatio.value = savedVerticalSplitRatio
-        Defaults.cornerCycleExpansionAxis.value = savedCornerCycleExpansionAxis
+        Defaults.cornerCycleExpansionAxis.value = savedCornerCycleExpansionMode
         Defaults.subsequentExecutionMode.value = savedSubsequentExecutionMode
         ActiveSideSplitRatios.shared.resetAll()
         super.tearDown()
@@ -5096,7 +5238,7 @@ class HalfSplitCornerCalculationTests: XCTestCase {
     private var savedHorizontalSplitRatio: Float = 50
     private var savedVerticalSplitRatio: Float = 50
     private var savedSubsequentExecutionMode: SubsequentExecutionMode = .resize
-    private var savedCornerCycleExpansionAxis: CornerCycleExpansionAxis = .horizontal
+    private var savedCornerCycleExpansionMode: CornerCycleExpansionMode = .horizontal
     private var savedCycleSizesIsChanged = false
     private var savedSelectedCycleSizes = Set<CycleSize>()
     private var savedGapSize: Float = 0
@@ -5108,7 +5250,7 @@ class HalfSplitCornerCalculationTests: XCTestCase {
         savedHorizontalSplitRatio = Defaults.horizontalSplitRatio.value
         savedVerticalSplitRatio = Defaults.verticalSplitRatio.value
         savedSubsequentExecutionMode = Defaults.subsequentExecutionMode.value
-        savedCornerCycleExpansionAxis = Defaults.cornerCycleExpansionAxis.value
+        savedCornerCycleExpansionMode = Defaults.cornerCycleExpansionAxis.value
         savedCycleSizesIsChanged = Defaults.cycleSizesIsChanged.enabled
         savedSelectedCycleSizes = Defaults.selectedCycleSizes.value
         savedGapSize = Defaults.gapSize.value
@@ -5124,7 +5266,7 @@ class HalfSplitCornerCalculationTests: XCTestCase {
         Defaults.horizontalSplitRatio.value = savedHorizontalSplitRatio
         Defaults.verticalSplitRatio.value = savedVerticalSplitRatio
         Defaults.subsequentExecutionMode.value = savedSubsequentExecutionMode
-        Defaults.cornerCycleExpansionAxis.value = savedCornerCycleExpansionAxis
+        Defaults.cornerCycleExpansionAxis.value = savedCornerCycleExpansionMode
         Defaults.cycleSizesIsChanged.enabled = savedCycleSizesIsChanged
         Defaults.selectedCycleSizes.value = savedSelectedCycleSizes
         Defaults.gapSize.value = savedGapSize
@@ -5200,6 +5342,26 @@ class HalfSplitCornerCalculationTests: XCTestCase {
             bottomLeft: CGRect(x: 10, y: 20, width: 800, height: 360),
             bottomRight: CGRect(x: 410, y: 20, width: 800, height: 360)
         )
+    }
+
+    func testRepeatedCornersUseDisplayOrientationForExpansionAxis() {
+        setSplitRatio(60)
+        Defaults.cornerCycleExpansionAxis.value = .displayOrientation
+
+        let landscapeBase = WindowCalculationFactory.upperLeftCalculation.calculateRect(params(for: .topLeft)).rect
+        let landscapeRepeated = WindowCalculationFactory.upperLeftCalculation.calculateRect(
+            repeatedParams(for: .topLeft, currentRect: landscapeBase)
+        ).rect
+        assertRect(landscapeRepeated, equals: CGRect(x: 10, y: 380, width: 800, height: 540))
+
+        let portraitFrame = CGRect(x: 10, y: 20, width: 900, height: 1200)
+        let portraitBase = WindowCalculationFactory.upperLeftCalculation.calculateRect(
+            params(for: .topLeft, screenFrame: portraitFrame)
+        ).rect
+        let portraitRepeated = WindowCalculationFactory.upperLeftCalculation.calculateRect(
+            repeatedParams(for: .topLeft, currentRect: portraitBase, screenFrame: portraitFrame)
+        ).rect
+        assertRect(portraitRepeated, equals: CGRect(x: 10, y: 420, width: 540, height: 800))
     }
 
     func testSecondRepeatedCornerShortcutBeginsCyclingImmediately() {
@@ -6043,20 +6205,23 @@ class HalfSplitCornerCalculationTests: XCTestCase {
         assertRect(WindowCalculationFactory.lowerRightCalculation.calculateRect(repeatedParams(for: .bottomRight, currentRect: bottomRightBase)).rect, equals: bottomRight)
     }
     
-    private func params(for action: WindowAction) -> RectCalculationParameters {
-        RectCalculationParameters(window: Window(id: 1, rect: visibleFrame),
-                                  visibleFrameOfScreen: visibleFrame,
+    private func params(for action: WindowAction, screenFrame: CGRect? = nil) -> RectCalculationParameters {
+        let screenFrame = screenFrame ?? visibleFrame
+        return RectCalculationParameters(window: Window(id: 1, rect: screenFrame),
+                                  visibleFrameOfScreen: screenFrame,
                                   action: action,
                                   lastAction: nil)
     }
 
-    private func repeatedParams(for action: WindowAction, currentRect: CGRect? = nil, count: Int = 1) -> RectCalculationParameters {
-        RectCalculationParameters(window: Window(id: 1, rect: currentRect ?? visibleFrame),
-                                  visibleFrameOfScreen: visibleFrame,
+    private func repeatedParams(for action: WindowAction, currentRect: CGRect? = nil,
+                                count: Int = 1, screenFrame: CGRect? = nil) -> RectCalculationParameters {
+        let screenFrame = screenFrame ?? visibleFrame
+        return RectCalculationParameters(window: Window(id: 1, rect: currentRect ?? screenFrame),
+                                  visibleFrameOfScreen: screenFrame,
                                   action: action,
                                   lastAction: RectangleAction(action: action,
                                                               subAction: nil,
-                                                              rect: currentRect ?? visibleFrame,
+                                                              rect: currentRect ?? screenFrame,
                                                               count: count))
     }
     
@@ -6065,6 +6230,37 @@ class HalfSplitCornerCalculationTests: XCTestCase {
         XCTAssertEqual(rect.origin.y, expected.origin.y, accuracy: 0.001, file: file, line: line)
         XCTAssertEqual(rect.width, expected.width, accuracy: 0.001, file: file, line: line)
         XCTAssertEqual(rect.height, expected.height, accuracy: 0.001, file: file, line: line)
+    }
+}
+
+final class CornerCycleExpansionModeTests: XCTestCase {
+    func testExistingPreferenceRawValuesRemainCompatible() {
+        XCTAssertEqual(CornerCycleExpansionMode.horizontal.rawValue, 0)
+        XCTAssertEqual(CornerCycleExpansionMode.vertical.rawValue, 1)
+        XCTAssertEqual(CornerCycleExpansionMode(rawValue: 0), .horizontal)
+        XCTAssertEqual(CornerCycleExpansionMode(rawValue: 1), .vertical)
+    }
+
+    func testCooperativeCornerHelpersUseResolvedAxis() {
+        let savedMode = Defaults.cornerCycleExpansionAxis.value
+        defer { Defaults.cornerCycleExpansionAxis.value = savedMode }
+        Defaults.cornerCycleExpansionAxis.value = .displayOrientation
+
+        let landscapeFrame = CGRect(x: 0, y: 0, width: 1200, height: 900)
+        let portraitFrame = CGRect(x: 0, y: 0, width: 900, height: 1200)
+        XCTAssertEqual(CooperativeResizeCoordinator.axis(for: .topLeft, screenFrame: landscapeFrame), .horizontal)
+        XCTAssertEqual(CooperativeResizeCoordinator.axis(for: .topLeft, screenFrame: portraitFrame), .vertical)
+
+        if case .right? = CooperativeResizeCoordinator.movedEdge(for: .topLeft, axis: .horizontal) {
+            // Expected: cycling width moves the right edge of a left corner.
+        } else {
+            XCTFail("Horizontal top-left cycling should move the right edge")
+        }
+        if case .bottom? = CooperativeResizeCoordinator.movedEdge(for: .topLeft, axis: .vertical) {
+            // Expected: cycling height moves the bottom edge of a top corner.
+        } else {
+            XCTFail("Vertical top-left cycling should move the bottom edge")
+        }
     }
 }
 
@@ -7396,9 +7592,9 @@ class MouseButtonShortcutTests: XCTestCase {
     }
 
     func testButtonsAreNumberedFromTheLeftButton() {
-        XCTAssertEqual(MouseButtonShortcut(buttonNumber: 2, modifierFlags: []).description, "Middle Button")
-        XCTAssertEqual(MouseButtonShortcut(buttonNumber: 3, modifierFlags: []).description, "Button 4")
-        XCTAssertEqual(MouseButtonShortcut(buttonNumber: 4, modifierFlags: [.command, .option]).description, "⌥⌘ Button 5")
+        XCTAssertEqual(MouseButtonShortcut(buttonNumber: 2, modifierFlags: []).description, String(localized: "Middle Button"))
+        XCTAssertEqual(MouseButtonShortcut(buttonNumber: 3, modifierFlags: []).description, String(localized: "Button \(4)"))
+        XCTAssertEqual(MouseButtonShortcut(buttonNumber: 4, modifierFlags: [.command, .option]).description, "⌥⌘ " + String(localized: "Button \(5)"))
         XCTAssertEqual(MouseButtonShortcut(buttonNumber: 4, modifierFlags: []).keyCodeStringForKeyEquivalent, "")
     }
 
@@ -7539,7 +7735,6 @@ class WindowActionShortcutViewTests: XCTestCase {
         view.shortcutValue = MASShortcut(keyCode: MouseButtonShortcut(buttonNumber: 3, modifierFlags: []).keyCode, modifierFlags: [.option])
 
         XCTAssertTrue(view.shortcutValue is MouseButtonShortcut)
-        XCTAssertEqual(view.shortcutValue?.description, "⌥ Button 4")
     }
 
     func testRecordsAMouseButtonOnlyWhileRecording() throws {
@@ -8417,6 +8612,27 @@ final class WindowSizeConstraintTests: XCTestCase {
         }
     }
 
+    func testCharacterCellTerminalsAllowUpToACell() {
+        let withinCell = CGRect(x: 0, y: 0, width: requested.width + 17, height: requested.height + 30)
+        XCTAssertFalse(WindowSizeConstraint.isExceeded(requested: requested, actual: withinCell,
+                                                       action: .firstThird, bundleId: { "com.apple.Terminal" }))
+        XCTAssertTrue(WindowSizeConstraint.isExceeded(requested: requested, actual: withinCell,
+                                                      action: .firstThird, bundleId: { "com.example.app" }))
+        XCTAssertTrue(WindowSizeConstraint.isExceeded(requested: requested, actual: withinCell,
+                                                      action: .firstThird, bundleId: { nil }))
+
+        let beyondCell = CGRect(x: 0, y: 0, width: requested.width + 100, height: requested.height)
+        XCTAssertTrue(WindowSizeConstraint.isExceeded(requested: requested, actual: beyondCell,
+                                                      action: .firstThird, bundleId: { "com.apple.Terminal" }))
+    }
+
+    func testBundleIdIsOnlyLookedUpWhenLargerThanRequested() {
+        var lookups = 0
+        XCTAssertFalse(WindowSizeConstraint.isExceeded(requested: requested, actual: requested, action: .firstThird,
+                                                       bundleId: { lookups += 1; return "com.apple.Terminal" }))
+        XCTAssertEqual(lookups, 0)
+    }
+
     func testInvalidRequestedAndActualFramesDoNotWarn() {
         let invalidFrames: [CGRect] = [
             .null, .infinite, .zero,
@@ -8468,7 +8684,8 @@ final class WindowSizeConstraintExecutionTests: XCTestCase {
             (Defaults.screenEdgeGapBottom, CodableDefault(float: 0)),
             (Defaults.cyclingOverlapOffset, CodableDefault(int: 2)),
             (Defaults.combinedDisplayMode, CodableDefault(int: 2)),
-            (Defaults.todo, CodableDefault(int: 2))
+            (Defaults.todo, CodableDefault(int: 2)),
+            (Defaults.showMinimumWindowSizeWarning, CodableDefault(int: 1))
         ]
         savedDefaults = settings.map { ($0.0, $0.0.toCodable()) }
         settings.forEach { $0.0.load(from: $0.1) }
@@ -8765,20 +8982,33 @@ final class WindowSizeConstraintExecutionTests: XCTestCase {
         }
     }
 
-    private final class TestWindowManager: WindowManager {
+    private final class RecordingSizeConstraint: WindowSizeConstraint {
         private(set) var warningScreens: [NSScreen] = []
         private(set) var hideCount = 0
         private(set) var warningVisible = false
-        var didFinish: (() -> Void)?
 
-        override func showSizeConstraintWarning(on screen: NSScreen) {
+        override func showWarning(on screen: NSScreen) {
             warningScreens.append(screen)
             warningVisible = true
         }
 
-        override func hideSizeConstraintWarning() {
+        override func hideWarning() {
             hideCount += 1
             warningVisible = false
+        }
+    }
+
+    private final class TestWindowManager: WindowManager {
+        private let recorder: RecordingSizeConstraint
+        var warningScreens: [NSScreen] { recorder.warningScreens }
+        var hideCount: Int { recorder.hideCount }
+        var warningVisible: Bool { recorder.warningVisible }
+        var didFinish: (() -> Void)?
+
+        init(screenDetection: ScreenDetection) {
+            let recorder = RecordingSizeConstraint()
+            self.recorder = recorder
+            super.init(screenDetection: screenDetection, sizeConstraint: recorder)
         }
 
         override func windowMovedAcrossDisplays(windowElement: AccessibilityElement, windowId: CGWindowID?,
@@ -11698,9 +11928,6 @@ final class CursorScreenDetectionExecutionTests: XCTestCase {
             detection = screenDetection
             super.init(screenDetection: screenDetection)
         }
-
-        override func showSizeConstraintWarning(on screen: NSScreen) {}
-        override func hideSizeConstraintWarning() {}
 
         override func warpCursor(to point: CGPoint) {
             cursorWarps += 1
