@@ -2,6 +2,82 @@
   "upstream_repository": "rxhanson/Rectangle",
   "releases": [
     {
+      "tag_name": "v2.0.5",
+      "name": "v2.0.5",
+      "body": "## What's Changed\r\n* Free the Settings window when it closes by @zolferfigueiredo in https://github.com/rxhanson/Rectangle/pull/1930\r\n* Add a Terminal option to use the full screen height when the menu bar is hidden by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1934\r\n* Keep the stacked-window list highlight on the window at the front by @MyronKoch in https://github.com/rxhanson/Rectangle/pull/1938\r\n* Localize the remaining Settings labels for zh-Hans by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1939\r\n* Add a Snap Areas setting for restoring windows resized with Larger or Smaller by @SamuelAdigos in https://github.com/rxhanson/Rectangle/pull/1940\r\n* Skip the title bar double-click action for ignored apps by @SamuelAdigos in https://github.com/rxhanson/Rectangle/pull/1941\r\n* Complete the Spanish (es, es-419) localization by @SamuelAdigos in https://github.com/rxhanson/Rectangle/pull/1942\r\n* Ignore keyboard shortcuts while Mission Control is active by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1935\r\n* Add Hindi (hi) localization by @samanyudas in https://github.com/rxhanson/Rectangle/pull/1944\r\n* Complete the Traditional Chinese (zh-Hant) localization by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1946\r\n* Move thirds and fourths to the adjacent display on repeat by @tlq5l in https://github.com/rxhanson/Rectangle/pull/1937\r\n* Add a Terminal option to apply an action to every new window by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1945\r\n* Reflow Todo mode when the display configuration changes by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1947\r\n* Fix RectangleTests failing to compile on main by @yannickgloster in https://github.com/rxhanson/Rectangle/pull/1954\r\n* Keep drag-to-snap on the other displays while a window is fullscreen by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1949\r\n* Keep the Todo window on screen when its app enforces a wider minimum width by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1950\r\n* Support vertical display traversal on repeated half actions by @yannickgloster in https://github.com/rxhanson/Rectangle/pull/1952\r\n* Add a download and update section for mainland China users to README.zh-Hans.md by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1963\r\n* The `WindowManager` needs to be adjusted so that it can accommodate future changes by @rxhanson in https://github.com/rxhanson/Rectangle/pull/1967\r\n* Move window to the display under the cursor  by @Kiizon in https://github.com/rxhanson/Rectangle/pull/1913\r\n* Make the default display ordering deterministic by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1960\r\n* Floor the center third calculations to whole pixels by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1961\r\n* Keep zh-Hans up to date: README sync and translation fixes by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1964\r\n* Give the Todo side its own strings by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1966\r\n* Don't show window size warning on terminal windows unnecessarily by @rxhanson in https://github.com/rxhanson/Rectangle/pull/1971\r\n* Complete the Italian, Brazilian Portuguese and Spanish translations by @zolferfigueiredo in https://github.com/rxhanson/Rectangle/pull/1957\r\n* Localize tests that fail when not run in English by @rxhanson in https://github.com/rxhanson/Rectangle/pull/1972\r\n* Add display-aware corner size cycling by @joseph-zhong in https://github.com/rxhanson/Rectangle/pull/1962\r\n* Complete the Japanese (ja) localization by @poife in https://github.com/rxhanson/Rectangle/pull/1970\r\n* Cycle vertical sixths through whole sixth, top half and bottom half on repeat by @ehippy in https://github.com/rxhanson/Rectangle/pull/1968\r\n* Split Rectangle tests into focused files by @rxhanson in https://github.com/rxhanson/Rectangle/pull/1975\r\n\r\n## New Contributors\r\n* @zolferfigueiredo made their first contribution in https://github.com/rxhanson/Rectangle/pull/1930\r\n* @SamuelAdigos made their first contribution in https://github.com/rxhanson/Rectangle/pull/1940\r\n* @samanyudas made their first contribution in https://github.com/rxhanson/Rectangle/pull/1944\r\n* @tlq5l made their first contribution in https://github.com/rxhanson/Rectangle/pull/1937\r\n* @yannickgloster made their first contribution in https://github.com/rxhanson/Rectangle/pull/1954\r\n* @Kiizon made their first contribution in https://github.com/rxhanson/Rectangle/pull/1913\r\n* @joseph-zhong made their first contribution in https://github.com/rxhanson/Rectangle/pull/1962\r\n* @poife made their first contribution in https://github.com/rxhanson/Rectangle/pull/1970\r\n\r\n**Full Changelog**: https://github.com/rxhanson/Rectangle/compare/v2.0.4...v2.0.5",
+      "draft": false,
+      "prerelease": false,
+      "created_at": "2026-11-20T13:55:53Z",
+      "updated_at": "2026-11-20T15:36:18Z",
+      "published_at": "2026-11-20T15:33:45Z",
+      "assets": [
+        {
+          "id": 772337774,
+          "name": "Rectangle112-107.delta",
+          "size": 1709838,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-11-20T15:33:41Z",
+          "digest": "sha256:993fade2fb8179b3a98ec6bce6a5a3d7350d61e17c095f8c6c386dd01c9fc52e"
+        },
+        {
+          "id": 772337768,
+          "name": "Rectangle112-108.delta",
+          "size": 1705782,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-11-20T15:33:39Z",
+          "digest": "sha256:69ec105069379033da08c7fe7840b6c6c6428cadca50091767e31d826c91b079"
+        },
+        {
+          "id": 772337994,
+          "name": "Rectangle112-109.delta",
+          "size": 1709010,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-11-20T15:33:43Z",
+          "digest": "sha256:1a49121265cd5396a2978dccd50401c71340f2213f70689f3faf00d762b131f0"
+        },
+        {
+          "id": 772338010,
+          "name": "Rectangle112-110.delta",
+          "size": 1655318,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-11-20T15:33:44Z",
+          "digest": "sha256:57c44fa140e77dd63083b0792109d26ef0d8a22c7f70974c699c71ce4de4e792"
+        },
+        {
+          "id": 772338076,
+          "name": "Rectangle112-111.delta",
+          "size": 1368102,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-11-20T15:33:44Z",
+          "digest": "sha256:0cbe47ce4c4d214c7af150cecb024fbddf53e790e69bb32f78654711d1b79956"
+        },
+        {
+          "id": 772337772,
+          "name": "Rectangle2.0.5.dmg",
+          "size": 4940143,
+          "content_type": "application/x-apple-diskimage",
+          "updated_at": "2026-11-20T15:33:44Z",
+          "digest": "sha256:4dec773a2f550d64147d88e07d987ce8119bdff045f1c6993a9a5eeb9f68496c"
+        },
+        {
+          "id": 772337767,
+          "name": "Rectangle2.0.5.pkg",
+          "size": 4942534,
+          "content_type": "application/octet-stream",
+          "updated_at": "2026-11-20T15:33:44Z",
+          "digest": "sha256:dcbee39cd7864e4667d99ff23fbab6ddfd1c13d803ddb1e5b183baa71bf87d2b"
+        },
+        {
+          "id": 772337775,
+          "name": "Rectangle2.0.5.zip",
+          "size": 5065903,
+          "content_type": "application/zip",
+          "updated_at": "2026-11-20T15:33:44Z",
+          "digest": "sha256:783ed9edc3ab1fc3627011a8c9ebb974074fab10fee2c3748d556b688e985a50"
+        }
+      ]
+    },
+    {
       "tag_name": "v2.0.4",
       "name": "v2.0.4",
       "body": "## What's Changed\r\n* Keep snap previews translucent with Reduce Transparency by @kiteretsu903 in https://github.com/rxhanson/Rectangle/pull/1898\r\n* Isolate and improve optional window animations by @kiteretsu903 in https://github.com/rxhanson/Rectangle/pull/1886\r\n* Avoid redundant Accessibility writes during ordinary window placement by @kiteretsu903 in https://github.com/rxhanson/Rectangle/pull/1899\r\n* Add mouse button shortcuts for window actions by @harshpatel333 in https://github.com/rxhanson/Rectangle/pull/1895\r\n* Add Persian (fa) localization by @aliafshany in https://github.com/rxhanson/Rectangle/pull/1910\r\n* Keep snap-preview material and geometry in sync by @kiteretsu903 in https://github.com/rxhanson/Rectangle/pull/1900\r\n* Add an option to snap before reaching outer screen edges by @kiteretsu903 in https://github.com/rxhanson/Rectangle/pull/1901\r\n* Sort the stacked-window list alphabetically by @MyronKoch in https://github.com/rxhanson/Rectangle/pull/1909\r\n* Persian: fix right-to-left layout of the accessibility prompt by @aliafshany in https://github.com/rxhanson/Rectangle/pull/1914\r\n* Honor screenEdgeGapTopNotch when it is set to 0 by @efim0v in https://github.com/rxhanson/Rectangle/pull/1911\r\n* Complete the Simplified Chinese (zh-Hans) localization by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1916\r\n* Add regression coverage for Todo placement on offset displays by @culpen90 in https://github.com/rxhanson/Rectangle/pull/1919\r\n* Add full-height vertical sixth window actions by @ehippy in https://github.com/rxhanson/Rectangle/pull/1917\r\n* Complete the Brazilian Portuguese (pt-BR) localization by @OCampezzi in https://github.com/rxhanson/Rectangle/pull/1918\r\n* Ukrainian localization by @lsl87Serhii in https://github.com/rxhanson/Rectangle/pull/1923\r\n* Add a Simplified Chinese README by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1928\r\n* Add a repeated-commands option that switches to the opposite side by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1925\r\n* Fix drag-snap window detection for Emacs 28 by @culpen90 in https://github.com/rxhanson/Rectangle/pull/1926\r\n* Give Debug builds their own bundle identifier by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1927\r\n* Point README to the 2.0 Settings tabs by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1931\r\n* Use a Chinese screenshot in README.zh-Hans.md by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1936\r\n* Document the alwaysAccountForStage hidden preference by @AkiyamaKunka in https://github.com/rxhanson/Rectangle/pull/1932\r\n* Minor bug fixes by @rxhanson \r\n\r\n## New Contributors\r\n* @aliafshany made their first contribution in https://github.com/rxhanson/Rectangle/pull/1910\r\n* @efim0v made their first contribution in https://github.com/rxhanson/Rectangle/pull/1911\r\n* @AkiyamaKunka made their first contribution in https://github.com/rxhanson/Rectangle/pull/1916\r\n* @ehippy made their first contribution in https://github.com/rxhanson/Rectangle/pull/1917\r\n* @OCampezzi made their first contribution in https://github.com/rxhanson/Rectangle/pull/1918\r\n* @lsl87Serhii made their first contribution in https://github.com/rxhanson/Rectangle/pull/1923\r\n\r\n**Full Changelog**: https://github.com/rxhanson/Rectangle/compare/v2.0.3...v2.0.4",
@@ -142,74 +218,6 @@
           "content_type": "application/x-diskcopy",
           "updated_at": "2026-10-05T20:34:35Z",
           "digest": "sha256:a48883b56fbe3fbbd699a05bc8ddbfce65c0c73c66f71eaebbe9f1fdc5a3dcb5"
-        }
-      ]
-    },
-    {
-      "tag_name": "v2.0.2",
-      "name": "v2.0.2",
-      "body": "* Fixes a crash when footprint blur is enabled on macOS < 26\r\n\r\n**Full Changelog**: https://github.com/rxhanson/Rectangle/compare/v2.0.1...v2.0.2",
-      "draft": false,
-      "prerelease": false,
-      "created_at": "2026-09-27T12:27:55Z",
-      "updated_at": "2026-09-27T12:39:13Z",
-      "published_at": "2026-09-27T12:34:07Z",
-      "assets": [
-        {
-          "id": 592893620,
-          "name": "Rectangle.pkg",
-          "size": 4693718,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-09-27T12:33:31Z",
-          "digest": "sha256:a21ad2b77496cefb4784235d0af9fe5eb643534a04305736202e7fd1da8614e7"
-        },
-        {
-          "id": 592893380,
-          "name": "Rectangle109-103.delta",
-          "size": 2567218,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-09-27T12:33:24Z",
-          "digest": "sha256:1dc486462ad426d26c8591f76772934bf8b55b06bbfb617c8920f53a5859e4e9"
-        },
-        {
-          "id": 592893420,
-          "name": "Rectangle109-104.delta",
-          "size": 2564662,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-09-27T12:33:25Z",
-          "digest": "sha256:a210034787f92f5988b421281e4af1819b1cebde51af2392dbf5473752d0e7f1"
-        },
-        {
-          "id": 592893440,
-          "name": "Rectangle109-105.delta",
-          "size": 2547122,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-09-27T12:33:25Z",
-          "digest": "sha256:b397ec5f9044719320a947cb5dff0138dd208518f17ca3dcdd64f2af4bcceb91"
-        },
-        {
-          "id": 592893469,
-          "name": "Rectangle109-107.delta",
-          "size": 163162,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-09-27T12:33:26Z",
-          "digest": "sha256:89c74e62bd30645e0d320c77e763b930936bcceda4413df90b32008361bc9121"
-        },
-        {
-          "id": 592893480,
-          "name": "Rectangle109-108.delta",
-          "size": 136362,
-          "content_type": "application/octet-stream",
-          "updated_at": "2026-09-27T12:33:26Z",
-          "digest": "sha256:4fc1f90825653930404dca943fa714678cd58083ba0e952fae73e2d70bb1301f"
-        },
-        {
-          "id": 592893485,
-          "name": "Rectangle2.0.2.dmg",
-          "size": 4679140,
-          "content_type": "application/x-diskcopy",
-          "updated_at": "2026-09-27T12:33:27Z",
-          "digest": "sha256:7a42f6b9e852fa7ef827ebe58596a49456d64754154da156df1a1dd184c38833"
         }
       ]
     }
